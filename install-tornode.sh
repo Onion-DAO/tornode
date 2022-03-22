@@ -586,7 +586,7 @@ fi
 post_data="$post_data}"
 
 # Register node with Onion DAO oracle
-curl -X POST https://oniondao.web.app/api/node \
+curl -X POST https://oniondao.web.app/api/tor_nodes \
    -H 'Content-Type: application/json' \
    -d "$post_data"
 
