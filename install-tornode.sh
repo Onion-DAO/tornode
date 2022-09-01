@@ -436,6 +436,7 @@ fi
 function disableIPV6() {
   sudo sed -i -e '/INSERT_IPV6_ADDRESS/d' /etc/tor/torrc
   sudo sed -i -e 's/IPv6Exit 1/IPv6Exit 0/' /etc/tor/torrc
+  sudo sed -i -e 's/ORPort 9001/ORPort 9001 IPv4Only/' /etc/tor/torrc
   sudo sed -i -e '/\[..\]/d' /etc/tor/torrc
   echoError "IPv6 support has been disabled!"
   echo "If you want to enable it manually find out your IPv6 address and add this line to your /etc/tor/torrc"
