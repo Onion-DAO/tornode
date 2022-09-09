@@ -245,8 +245,9 @@ sudo ntpdate pool.ntp.org > /dev/null && echoSuccess "-> OK"
 
 echoInfo "Adding Torproject apt repository..."
 sudo touch /etc/apt/sources.list.d/tor.list && echoSuccess "-> touch OK" || handleError
-echo "deb https://deb.torproject.org/torproject.org $RELEASE main" | sudo tee /etc/apt/sources.list.d/tor.list > /dev/null && echoSuccess "-> tee1 OK" || handleError
-echo "deb-src https://deb.torproject.org/torproject.org $RELEASE main" | sudo tee --append /etc/apt/sources.list.d/tor.list > /dev/null && echoSuccess "-> tee2 OK" || handleError
+ARCH=`dpkg --print-architecture`
+echo "deb [arch=$ARCH] https://deb.torproject.org/torproject.org $RELEASE main" | sudo tee /etc/apt/sources.list.d/tor.list > /dev/null && echoSuccess "-> tee1 OK" || handleError
+echo "deb-src [arch=$ARCH] https://deb.torproject.org/torproject.org $RELEASE main" | sudo tee --append /etc/apt/sources.list.d/tor.list > /dev/null && echoSuccess "-> tee2 OK" || handleError
 
 echoInfo "Adding Torproject GPG key..."
 curl https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | sudo apt-key add - && echoSuccess "-> OK" || handleError
