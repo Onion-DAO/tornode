@@ -23,7 +23,7 @@ Are you in a rush?
 
 # Text instructions
 
-You should run your Tor exit node in a data center, probably as a VPS. The requires specs are:
+You should run your Tor exit node in a data center, probably as a VPS. The required specs are:
 
 1. Any modern CPU
 1. 1.5 GB RAM
@@ -59,7 +59,7 @@ sudo bash setup.sh
 
 ### Step 3: keep it running for a month
 
-After a month, the POAPs will de distributed through poap.delivery.
+After a month, the POAPs will be distributed through poap.delivery.
 
 ---
 
