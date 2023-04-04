@@ -229,6 +229,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   tor_daemon_$i:
     image: ilshidur/tor-relay
     container_name: tor_daemon_$i
+    init: true
     restart: unless-stopped
     ports:
       - \"900$i:900$i\"
@@ -239,7 +240,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
       PGID: $(id -g)
       TZ: Europe/London
     volumes:
-      - $data_folder_path:/data
+      - $data_folder_path:/data:Z
       - $torrc_file_path:/etc/tor/torrc:ro
   " >> "$DOCKER_COMPOSE_PATH/docker-compose.yml"
 
