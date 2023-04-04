@@ -58,7 +58,7 @@ if test -f $DOCKER_COMPOSE_PATH/torrc1; then
 
   NODE_NICKNAME=$( grep -Po "(?<=Nickname )(.*)" $DOCKER_COMPOSE_PATH/torrc1 2> /dev/null )
   DAEMON_AMOUNT=$( grep -Po "(?<=DAEMON_AMOUNT=)(.*)" "$ONIONDAO_PATH/.oniondaorc" 2> /dev/null )
-  NODE_BANDWIDTH=$( grep -Po "(?<=NODE_BANDWIDTH=)(.*)(?= TB)" "$ONIONDAO_PATH/.oniondaorc" 2> /dev/null )
+  NODE_BANDWIDTH=$( grep -Po "(?<=NODE_BANDWIDTH=)(.*)" "$ONIONDAO_PATH/.oniondaorc" 2> /dev/null )
   OPERATOR_EMAIL=$( grep -Po "(?<=ContactInfo )(.*)" $DOCKER_COMPOSE_PATH/torrc1 2> /dev/null )
   OPERATOR_WALLET=$( grep -Po "(?<= address: )(.*)(?= -->)" $ONIONDAO_PATH/fixtures/index.html 2> /dev/null )
   OPERATOR_TWITTER=$( grep -Po "(?<=OPERATOR_TWITTER=)(.*)" "$ONIONDAO_PATH/.oniondaorc" 2> /dev/null )
@@ -229,7 +229,6 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   tor_daemon_$i:
     image: ilshidur/tor-relay
     container_name: tor_daemon_$i
-    init: true
     restart: unless-stopped
     ports:
       - \"900$i:900$i\"
