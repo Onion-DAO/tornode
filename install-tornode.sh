@@ -253,10 +253,6 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
   # Unique config
   echo -e "
-    # Variables
-    Nickname $NODE_NICKNAME
-    ContactInfo $OPERATOR_EMAIL
-
     ORPort 900$i
     ControlPort 905$i
   " >> $torrc_file_path
@@ -270,6 +266,9 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
       ORPort [$IPV6_ADDRESS]:900$i
     " >> $torrc_file_path
   fi
+
+  # Trim whitespace
+  sed -ir 's/\s+//g' $torrc_file_path
 
 done
 
