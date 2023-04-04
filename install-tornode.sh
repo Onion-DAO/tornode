@@ -60,7 +60,7 @@ if test -f $DOCKER_COMPOSE_PATH/torrc1; then
   DAEMON_AMOUNT=$( grep -Po "(?<=DaemonAmount )(.*)" $DOCKER_COMPOSE_PATH/torrc1 2> /dev/null )
   NODE_BANDWIDTH=$( grep -Po "(?<=AccountingMax )(.*)(?= TB)" $DOCKER_COMPOSE_PATH/torrc1 2> /dev/null )
   OPERATOR_EMAIL=$( grep -Po "(?<=ContactInfo )(.*)" $DOCKER_COMPOSE_PATH/torrc1 2> /dev/null )
-  OPERATOR_WALLET=$( grep -Po "(?<= address: )(.*)(?= -->)" $ONIONDAO_PATH/fixtures/tor-exit-notice.html 2> /dev/null )
+  OPERATOR_WALLET=$( grep -Po "(?<= address: )(.*)(?= -->)" $ONIONDAO_PATH/fixtures/index.html 2> /dev/null )
   OPERATOR_TWITTER=$( grep -Po "(?<=OPERATOR_TWITTER=)(.*)" "$ONIONDAO_PATH/.oniondaorc" 2> /dev/null )
   REDUCED_EXIT_POLICY=$( grep -Po "(?<=REDUCED_EXIT_POLICY=)(.*)" "$ONIONDAO_PATH/.oniondaorc" 2> /dev/null )
 
@@ -283,10 +283,10 @@ echo "Waiting for Tor to come online, just a moment..."
 echo "This can take a few minutes. DO NOT EXIT THIS SCRIPT."
 
 # Write exit file
-cp $ONIONDAO_PATH/fixtures/tor-exit-notice.template.html $ONIONDAO_PATH/fixtures/tor-exit-notice.html
-sed -i "s/FIXME_YOUR_EMAIL_ADDRESS/$OPERATOR_EMAIL/g" $ONIONDAO_PATH/fixtures/tor-exit-notice.html
-sed -i "s/FIXME_DNS_NAME/$REMOTE_IP/g" $ONIONDAO_PATH/fixtures/tor-exit-notice.html
-echo "<!-- OnionDAO address: $OPERATOR_WALLET -->" >> $ONIONDAO_PATH/fixtures/tor-exit-notice.html
+cp $ONIONDAO_PATH/fixtures/tor-exit-notice.template.html $ONIONDAO_PATH/fixtures/index.html
+sed -i "s/FIXME_YOUR_EMAIL_ADDRESS/$OPERATOR_EMAIL/g" $ONIONDAO_PATH/fixtures/index.html
+sed -i "s/FIXME_DNS_NAME/$REMOTE_IP/g" $ONIONDAO_PATH/fixtures/index.html
+echo "<!-- OnionDAO address: $OPERATOR_WALLET -->" >> $ONIONDAO_PATH/fixtures/index.html
 
 PROGRESS="#"
 until curl "http://127.0.0.1" &> /dev/null; do
