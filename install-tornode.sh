@@ -64,9 +64,9 @@ if test -f $DOCKER_COMPOSE_PATH/torrc1; then
   OPERATOR_TWITTER=$( grep -Po "(?<=OPERATOR_TWITTER=)(.*)" "$ONIONDAO_PATH/.oniondaorc" 2> /dev/null )
   REDUCED_EXIT_POLICY=$( grep -Po "(?<=REDUCED_EXIT_POLICY=)(.*)" "$ONIONDAO_PATH/.oniondaorc" 2> /dev/null )
 
-  echo "\n\n----------------------------------------"
+  echo -e "\n\n----------------------------------------"
   echo "You have existing configurations:"
-  echo "----------------------------------------\n\n"
+  echo -e "----------------------------------------\n\n"
 
   echo "POAP wallet: $OPERATOR_WALLET"
   echo "Node nickname: $NODE_NICKNAME"
@@ -74,7 +74,7 @@ if test -f $DOCKER_COMPOSE_PATH/torrc1; then
   echo "Operator twitter: $OPERATOR_TWITTER"
   echo "Monthly bandwidth limit: $NODE_BANDWIDTH TB"
   echo "Node amount: $NODE_AMOUNT"
-  echo "Reduced exit policy: $REDUCED_EXIT_POLICY\n"
+  echo -e "Reduced exit policy: $REDUCED_EXIT_POLICY\n"
 
   read -p "Keep existing configurations? [Y/n] (default Y): " KEEP_OLD_CONFIGS
   KEEP_OLD_CONFIGS=${KEEP_OLD_CONFIGS:-"Y"}
@@ -87,9 +87,9 @@ if [[ "$KEEP_OLD_CONFIGS" == "Y" ]]; then
   REDUCED_EXIT_POLICY=${REDUCED_EXIT_POLICY:-"Y"}
 else
 
-  echo "\n\n----------------------------------------"
+  echo -e "\n\n----------------------------------------"
   echo "Tor setup needs some information"
-  echo "----------------------------------------\n\n"
+  echo -e "----------------------------------------\n\n"
 
   read -p "How many TB is this node allowed to use per month? (default 1 TB): " NODE_BANDWIDTH
   NODE_BANDWIDTH=${NODE_BANDWIDTH:-"1"}
@@ -105,18 +105,18 @@ else
   read -p "Do you want to ReducedExitPolicy? [Y/n] (default Y): " REDUCED_EXIT_POLICY
   REDUCED_EXIT_POLICY=${REDUCED_EXIT_POLICY:-"Y"}
 
-  echo "\n\n----------------------------------------"
+  echo -e "\n\n----------------------------------------"
   echo "OnionDAO needs some information"
-  echo "----------------------------------------\n\n"
+  echo -e "----------------------------------------\n\n"
 
   echo "⚠️ Note: Tor needs a valid email address so you can be contacted if there is an issue."
   echo "This address is public, you may want to use a dedicated email account for this, or if you use gmail use the + operator like so: yourname+tor@gmail.com. Read more about task-specific addresses here: https://support.google.com/a/users/answer/9308648?hl=en\n"
   read -p "Your email (requirement for a Tor node): " OPERATOR_EMAIL
 
-  echo "\nYour node nickname is visible on the leaderboard at https://tor-relay.co/"
+  echo -e "\nYour node nickname is visible on the leaderboard at https://tor-relay.co/"
   read -p "Node nickname (requirement for a Tor node, only letters and numbers): " NODE_NICKNAME
 
-  echo "\nYour Twitter handle is OPTIONAL and purely so you can be tweeted at if needed"
+  echo -e "\nYour Twitter handle is OPTIONAL and purely so you can be tweeted at if needed"
   read -p "Your twitter handle (optional): " OPERATOR_TWITTER
 
   # force node nickname to be only alphanumeric
@@ -124,14 +124,14 @@ else
 
   read -p "Your wallet address or ENS (to receive POAP): " OPERATOR_WALLET
 
-  echo  "\n\n----------------------------------------"
+  echo  -e "\n\n----------------------------------------"
   echo  "Check your information"
   echo  "----------------------------------------"
   echo  "POAP wallet: $OPERATOR_WALLET"
   echo  "Node nickname: $NODE_NICKNAME"
   echo  "Operator email: $OPERATOR_EMAIL"
   echo  "Operator twitter: $OPERATOR_TWITTER"
-  echo  "Monthly bandwidth limit: $NODE_BANDWIDTH TB\n"
+  echo  -e "Monthly bandwidth limit: $NODE_BANDWIDTH TB\n"
   echo "Press any key to continue or ctrl+c to exit..."
   read
 
@@ -180,7 +180,7 @@ if [ ! IPV6_GOOD ]; then
   echo "No ipv6 support, ignoring ipv6"
 else
 
-  IPV6_ADDRESS=$(ip -6 addr | grep inet6 | grep "scope global" | awk '{print $2}' | cut -d'/' -f1)  
+  IPV6_ADDRESS=$(ip -6 addr | grep inet6 | grep "scope global" | awk '{print $2}' | cut -d'/' -f1)
   if [ -z "$IPV6_ADDRESS" ];then
       echo "Could not automatically find your IPv6 address"
       echo "If you know your global (!) IPv6 address you can enter it now"
@@ -227,17 +227,17 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
       CONTACT_EMAIL: $OPERATOR_EMAIL
     volumes:
       - $data_folder_path:/var/lib/tor/
-      - ./torrc$i:$DOCKER_COMPOSE_PATH/torrc1
+      - $DOCKER_COMPOSE_PATH/torrc$i:/etc/tor/torrc
   "
   # Create torrc files
   torrc_file_path="$DOCKER_COMPOSE_PATH/torrc$1"
 
   # Shared config
-  cat ./fixtures/shared.torrc > $torrc_file_path
+  cat $ONIONDAO_PATH/fixtures/shared.torrc > $torrc_file_path
   if [[ "$REDUCED_EXIT_POLICY" == "Y" ]]; then
-    cat ./fixtures/rep-policy.torrc >> $torrc_file_path
+    cat $ONIONDAO_PATH/fixtures/rep-policy.torrc >> $torrc_file_path
   else
-    cat ./fixtures/web-only.torrc >> $torrc_file_path
+    cat $ONIONDAO_PATH/fixtures/web-only.torrc >> $torrc_file_path
   fi
 
   # Unique config
@@ -322,7 +322,7 @@ EOF
 
 echo "------------------------------------------------------"
 echo "Registering node with OnionDAO..."
-echo "------------------------------------------------------\n"
+echo -e "------------------------------------------------------\n"
 
 ## ###############
 ## Data sanitation
@@ -358,10 +358,10 @@ curl -X POST https://oniondao.web.app/api/tor_nodes \
   -H 'Content-Type: application/json' \
   -d "$post_data"
 
-echo "\n\n------------------------------------------------------"
+echo -e "\n\n------------------------------------------------------"
 echo "Want to stay up to date on OnionDAO developments?"
-echo "------------------------------------------------------\n"
-echo "👉 Join us in the Rocketeer discord in the #onion-dao channel: https://discord.gg/rocketeers\n"
+echo -e "------------------------------------------------------\n"
+echo -e "👉 Join us in the Rocketeer discord in the #onion-dao channel: https://discord.gg/rocketeers\n"
 
 # 🔥 add the current user to the tor user group so that we can run Nyx without sudo
 # this is a known Nyx annoyance, see https://github.com/torproject/nyx/issues/24
