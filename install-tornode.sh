@@ -225,17 +225,18 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   # Add docker-compose declarations
   echo -e "
   tor_daemon_$i:
-    image: chriswayg/tor-server
+    image: ilshidur/tor-relay
     container_name: tor_daemon_$i
     init: true
     restart: unless-stopped
-    network_mode: host
+    ports:
+      - "900$i:900$i"
     environment:
       TOR_NICKNAME: $NODE_NICKNAME
       CONTACT_EMAIL: $OPERATOR_EMAIL
     volumes:
       - $data_folder_path:/var/lib/tor/
-      - $torrc_file_path:/etc/tor/torrc
+      - $torrc_file_path:/etc/tor/torrc:ro
   " >> "$DOCKER_COMPOSE_PATH/docker-compose.yml"
 
   # Shared config
@@ -259,6 +260,9 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
   # Unique config
   echo -e "
+    # Variables
+    Nickname $NODE_NICKNAME
+    ContactInfo $OPERATOR_EMAIL
     ORPort 900$i
     ControlPort 905$i
   " >> $torrc_file_path
