@@ -229,7 +229,6 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   tor_daemon_$i:
     image: ilshidur/tor-relay
     container_name: tor_daemon_$i
-    init: true
     restart: unless-stopped
     ports:
       - \"900$i:900$i\"
