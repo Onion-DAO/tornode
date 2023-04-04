@@ -137,6 +137,10 @@ else
 
 fi
 
+# Save data that is not in different places
+echo "OPERATOR_TWITTER=$OPERATOR_TWITTER" > $ONIONDAO_PATH/.oniondaorc
+echo "REDUCED_EXIT_POLICY=$REDUCED_EXIT_POLICY" >> $ONIONDAO_PATH/.oniondaorc
+
 ## ###############
 ## 2️⃣ Install Tor
 ## ###############
@@ -199,6 +203,7 @@ version: \"3\"
 services:
   exit-notice:
     image: nginx
+    container_name: exit_notice_webserver
     volumes:
       - $ONIONDAO_PATH/fixtures/:/usr/share/nginx/html:ro
     ports:
@@ -221,7 +226,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   echo -e "
   tor_daemon_$i:
     image: chriswayg/tor-server
-    name: tor_daemon_$i
+    container_name: tor_daemon_$i
     init: true
     restart: unless-stopped
     network_mode: host
@@ -337,10 +342,6 @@ echo -e "------------------------------------------------------\n"
 ## ###############
 ## Data sanitation
 ## ###############
-
-# Save data that is not in different places
-echo "OPERATOR_TWITTER=$OPERATOR_TWITTER" > $ONIONDAO_PATH/.oniondaorc
-echo "REDUCED_EXIT_POLICY=$REDUCED_EXIT_POLICY" >> $ONIONDAO_PATH/.oniondaorc
 
 # Check for the (current) edge case that this is a ipv6-only server, assumption: if we could not find an ipv4, you are an ipv6
 if [ ${#REMOTE_IP} -lt 7 ]; then
