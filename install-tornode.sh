@@ -143,21 +143,20 @@ fi
 
 # Install Docker, see https://docs.docker.com/engine/install/ubuntu/
 echo -e "\nInstalling docker..."
-sudo apt-get -y remove docker docker-engine docker.io containerd runc
-sudo apt-get update
-sudo apt-get -y install \
+sudo apt -y remove docker docker-engine docker.io containerd runc &> /dev/null
+sudo apt update &> /dev/null
+sudo apt -y install \
     ca-certificates \
     curl \
-    gnupg
-sudo mkdir -m 0755 -p /etc/apt/keyrings
+    gnupg &> /dev/null
+sudo mkdir -m 0755 -p /etc/apt/keyrings &> /dev/null
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 echo \
   "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
   "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-sudo docker run hello-world
+sudo apt update &> /dev/null
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin &> /dev/null
 
 # Get ipv4 of this server
 REMOTE_IP=$( curl ipv4.icanhazip.com 2> /dev/null )
@@ -215,7 +214,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
   # Make tor data folder to mount
   data_folder_path="$DOCKER_COMPOSE_PATH/tor-data-$i"
-  torrc_file_path="$DOCKER_COMPOSE_PATH/torrc$1"
+  torrc_file_path="$DOCKER_COMPOSE_PATH/torrc$i"
   mkdir -p $data_folder_path
 
   # Add docker-compose declarations
