@@ -2,7 +2,7 @@
 
 # Global config
 BIN_FOLDER=/usr/local/sbin
-ONIONDAO_PATH="$HOME/.oniondao/"
+ONIONDAO_PATH="$HOME/.oniondao"
 DOCKER_COMPOSE_PATH="$ONIONDAO_PATH/docker-composition"
 
 ## ###############
@@ -173,13 +173,11 @@ elif [ ${#REMOTE_IP} -lt 7 ]; then
 fi
 
 # Checking for ipv6
-echoInfo "Testing IPV6..."
-IPV6_GOOD=false
+echo "Testing IPV6..."
 ping6 -c2 2001:858:2:2:aabb:0:563b:1526 && ping6 -c2 2620:13:4000:6000::1000:118 && ping6 -c2 2001:67c:289c::9 && ping6 -c2 2001:678:558:1000::244 && ping6 -c2 2607:8500:154::3 && ping6 -c2 2001:638:a000:4140::ffff:189 && IPV6_GOOD=true
-if [ ! IPV6_GOOD ]; then
+if [ -z "$IPV6_GOOD" ]; then
   echo "No ipv6 support, ignoring ipv6"
 else
-
   IPV6_ADDRESS=$(ip -6 addr | grep inet6 | grep "scope global" | awk '{print $2}' | cut -d'/' -f1)
   if [ -z "$IPV6_ADDRESS" ];then
       echo "Could not automatically find your IPv6 address"
@@ -194,6 +192,7 @@ fi
 ## ###############
 ## 3️⃣ Create Tor container spec for every DAEMON_AMOUNT
 ## ###############
+mkdir -p $DOCKER_COMPOSE_PATH
 echo -e "
 ---
 version: "3"
