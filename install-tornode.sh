@@ -236,9 +236,9 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
     environment:
       TOR_NICKNAME: $NODE_NICKNAME
       CONTACT_EMAIL: $OPERATOR_EMAIL
-      PUID=$(id -u)
-      PGID=$(id -g)
-      TZ=Europe/London
+      PUID: $(id -u)
+      PGID: $(id -g)
+      TZ: Europe/London
     volumes:
       - $data_folder_path:/data
       - $torrc_file_path:/etc/tor/torrc:ro
