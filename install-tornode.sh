@@ -142,7 +142,7 @@ fi
 ## ###############
 
 # Install Docker, see https://docs.docker.com/engine/install/ubuntu/
-echo -e "\nInstalling docker..."
+echo -e "\nInstalling/updating docker..."
 sudo apt -y remove docker docker-engine docker.io containerd runc &> /dev/null
 sudo apt update &> /dev/null
 sudo apt -y install \
@@ -221,6 +221,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   echo -e "
   tor_daemon_$i:
     image: chriswayg/tor-server
+    name: tor_daemon_$i
     init: true
     restart: unless-stopped
     network_mode: host
