@@ -58,7 +58,7 @@ if test -f $DOCKER_COMPOSE_PATH/torrc1; then
 
   NODE_NICKNAME=$( grep -Po "(?<=Nickname )(.*)" $DOCKER_COMPOSE_PATH/torrc1 2> /dev/null )
   DAEMON_AMOUNT=$( grep -Po "(?<=DAEMON_AMOUNT=)(.*)" "$ONIONDAO_PATH/.oniondaorc" 2> /dev/null )
-  NODE_BANDWIDTH=$( grep -Po "(?<=AccountingMax )(.*)(?= TB)" $DOCKER_COMPOSE_PATH/torrc1 2> /dev/null )
+  NODE_BANDWIDTH=$( grep -Po "(?<=NODE_BANDWIDTH=)(.*)(?= TB)" "$ONIONDAO_PATH/.oniondaorc" 2> /dev/null )
   OPERATOR_EMAIL=$( grep -Po "(?<=ContactInfo )(.*)" $DOCKER_COMPOSE_PATH/torrc1 2> /dev/null )
   OPERATOR_WALLET=$( grep -Po "(?<= address: )(.*)(?= -->)" $ONIONDAO_PATH/fixtures/index.html 2> /dev/null )
   OPERATOR_TWITTER=$( grep -Po "(?<=OPERATOR_TWITTER=)(.*)" "$ONIONDAO_PATH/.oniondaorc" 2> /dev/null )
@@ -141,6 +141,7 @@ fi
 echo "OPERATOR_TWITTER=$OPERATOR_TWITTER" > $ONIONDAO_PATH/.oniondaorc
 echo "REDUCED_EXIT_POLICY=$REDUCED_EXIT_POLICY" >> $ONIONDAO_PATH/.oniondaorc
 echo "DAEMON_AMOUNT=$DAEMON_AMOUNT" >> $ONIONDAO_PATH/.oniondaorc
+echo "NODE_BANDWIDTH=$NODE_BANDWIDTH" >> $ONIONDAO_PATH/.oniondaorc
 
 ## ###############
 ## 2️⃣ Install Tor
