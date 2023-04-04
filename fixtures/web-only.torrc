@@ -1,0 +1,3 @@
+ExitPolicy accept *:53        # DNS
+ExitPolicy accept *:80     # finger, HTTP
+ExitPolicy accept *:443       # HTTPS

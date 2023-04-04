@@ -1,0 +1,11 @@
+
+SocksPort 0
+RunAsDaemon 1
+ExitRelay 1
+
+# Bandwidth accounting
+AccountingStart month 1 00:00
+
+DisableDebuggerAttachment 0
+CookieAuthentication 1
+Log notice file /var/log/tor/notices.log
