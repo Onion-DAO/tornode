@@ -73,7 +73,7 @@ if test -f $DOCKER_COMPOSE_PATH/torrc1; then
   echo "Operator email: $OPERATOR_EMAIL"
   echo "Operator twitter: $OPERATOR_TWITTER"
   echo "Monthly bandwidth limit: $NODE_BANDWIDTH TB"
-  echo "Node amount: $NODE_AMOUNT"
+  echo "Daemon amount: $DAEMON_AMOUNT"
   echo -e "Reduced exit policy: $REDUCED_EXIT_POLICY\n"
 
   read -p "Keep existing configurations? [Y/n] (default Y): " KEEP_OLD_CONFIGS
