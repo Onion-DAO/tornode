@@ -231,7 +231,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
     init: true
     restart: unless-stopped
     ports:
-      - "900$i:900$i"
+      - \"900$i:900$i\"
     environment:
       TOR_NICKNAME: $NODE_NICKNAME
       CONTACT_EMAIL: $OPERATOR_EMAIL
