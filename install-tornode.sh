@@ -192,6 +192,7 @@ fi
 ## ###############
 ## 3️⃣ Create Tor container spec for every DAEMON_AMOUNT
 ## ###############
+rm -rf $DOCKER_COMPOSE_PATH/*
 mkdir -p $DOCKER_COMPOSE_PATH
 echo -e "
 ---
@@ -210,8 +211,11 @@ services:
 # Add docker-compose declarations for each node
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
+  echo "Making daemon $i"
+
   # Make tor data folder to mount
   data_folder_path="$DOCKER_COMPOSE_PATH/tor-data-$i"
+  torrc_file_path="$DOCKER_COMPOSE_PATH/torrc$1"
   mkdir -p $data_folder_path
 
   # Add docker-compose declarations
@@ -226,10 +230,8 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
       CONTACT_EMAIL: $OPERATOR_EMAIL
     volumes:
       - $data_folder_path:/var/lib/tor/
-      - $DOCKER_COMPOSE_PATH/torrc$i:/etc/tor/torrc
+      - $torrc_file_path:/etc/tor/torrc
   " >> "$DOCKER_COMPOSE_PATH/docker-compose.yml"
-  # Create torrc files
-  torrc_file_path="$DOCKER_COMPOSE_PATH/torrc$1"
 
   # Shared config
   cat $ONIONDAO_PATH/fixtures/shared.torrc > $torrc_file_path
