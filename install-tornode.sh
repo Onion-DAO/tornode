@@ -91,7 +91,7 @@ else
   echo "Tor setup needs some information"
   echo -e "----------------------------------------\n\n"
 
-  read -p "How many TB is this node allowed to use per month? (default 1 TB): " NODE_BANDWIDTH
+  read -p "How many TB is this node allowed to use per month? (default 1, use 0 for unlimited): " NODE_BANDWIDTH
   NODE_BANDWIDTH=${NODE_BANDWIDTH:-"1"}
 
   echo -e "\nAre you on an (expensive) fully unmetered 1-10 Gbps connection?"
@@ -110,7 +110,7 @@ else
   echo -e "----------------------------------------\n\n"
 
   echo "⚠️ Note: Tor needs a valid email address so you can be contacted if there is an issue."
-  echo "This address is public, you may want to use a dedicated email account for this, or if you use gmail use the + operator like so: yourname+tor@gmail.com. Read more about task-specific addresses here: https://support.google.com/a/users/answer/9308648?hl=en\n"
+  echo -e "This address is public, you may want to use a dedicated email account for this, or if you use gmail use the + operator like so: yourname+tor@gmail.com. Read more about task-specific addresses here: https://support.google.com/a/users/answer/9308648?hl=en\n"
   read -p "Your email (requirement for a Tor node): " OPERATOR_EMAIL
 
   echo -e "\nYour node nickname is visible on the leaderboard at https://tor-relay.co/"
@@ -195,7 +195,7 @@ fi
 mkdir -p $DOCKER_COMPOSE_PATH
 echo -e "
 ---
-version: "3"
+version: \"3\"
 services:
   exit-notice:
     image: nginx
@@ -227,7 +227,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
     volumes:
       - $data_folder_path:/var/lib/tor/
       - $DOCKER_COMPOSE_PATH/torrc$i:/etc/tor/torrc
-  "
+  " >> "$DOCKER_COMPOSE_PATH/docker-compose.yml"
   # Create torrc files
   torrc_file_path="$DOCKER_COMPOSE_PATH/torrc$1"
 
@@ -239,12 +239,22 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
     cat $ONIONDAO_PATH/fixtures/web-only.torrc >> $torrc_file_path
   fi
 
+  # Use accounting?
+  if [ "$NODE_BANDWIDTH" -eq "0" ]; then
+    echo "No bandwidth limit set in $torrc_file_path"
+  else
+    echo -e "
+    # Bandwidth accounting
+    AccountingStart month 1 00:00
+    AccountingMax $NODE_BANDWIDTH TB
+    " >> $torrc_file_path
+  fi
+
   # Unique config
   echo -e "
     # Variables
     Nickname $NODE_NICKNAME
     ContactInfo $OPERATOR_EMAIL
-    AccountingMax $NODE_BANDWIDTH TB
 
     ORPort 900$i
     ControlPort 905$i
