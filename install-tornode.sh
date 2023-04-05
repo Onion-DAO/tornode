@@ -339,10 +339,12 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
   data_folder_path="$DOCKER_COMPOSE_PATH/tor-data-$i"
   key_backup_path="$ONIONDAO_PATH/keys/daemon-$i/"
-  until test -f "$data_folder_path/keys/secret_onion_key"; do
+  fingerprint_path="$DOCKER_COMPOSE_PATH/tor-data-$i/keys/fingerprint"
+  until test -f "$fingerprint_path"; do
     sleep 5
   done
   echo "Found Tor keys in $data_folder_path, backing up"
+  l -lah "$data_folder_path/keys/*"
   mkdir -p $key_backup_path
   cp "$data_folder_path/keys/*" "$key_backup_path"
 
