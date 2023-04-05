@@ -359,7 +359,7 @@ family_path="$ONIONDAO_PATH/family"
 echo -e "\nMyFamily " > "$family_path"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
-  fingerprint_path="$DOCKER_COMPOSE_PATH/tor-data-$i/keys/fingerprint"
+  fingerprint_path="$DOCKER_COMPOSE_PATH/tor-data-$i/fingerprint"
   fingerprint=$( cat $fingerprint_path | grep -Po "(?<=\ ).*" )
   if [[ "$i" == "1" ]]; then
     echo "$fingerprint" >> "$fingerprint_path"
