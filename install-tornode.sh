@@ -343,7 +343,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   key_count=$( ls -lah $key_path | wc -l )
 
   # We expect at least 10 key files
-  until [[ "$key_count" -lt 10 ]]; do
+  until [[ "$key_count" -gt 9 ]]; do
     echo "Found $key_count key files, waiting for 10"
     sleep 5
   done
