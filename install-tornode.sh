@@ -318,11 +318,12 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   key_path="$DOCKER_COMPOSE_PATH/tor-data-$i/keys"
   key_backup_path="$ONIONDAO_PATH/keys/daemon-$i/"
   fingerprint_path="$DOCKER_COMPOSE_PATH/tor-data-$i/keys/fingerprint"
-  key_count=$( ls -lah $key_path | wc -l )
+  key_count=$( ls -lah $key_path 2> /dev/null | wc -l )
 
   # We expect at least 10 key files
   until [[ "$key_count" -gt 9 ]]; do
     echo "Found $key_count key files, waiting for 10"
+    key_count=$( ls -lah $key_path 2> /dev/null | wc -l )
     sleep 5
   done
   echo "Found 10 Tor keys in $key_path, backing up"
