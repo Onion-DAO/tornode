@@ -354,7 +354,9 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 done
 
 # Set family
+
 echo "Adding Tor fingerprints to family"
+docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down --remove-orphans
 family_path="$ONIONDAO_PATH/family"
 echo -e "\nMyFamily " > "$family_path"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
@@ -364,7 +366,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   if [[ "$i" == "1" ]]; then
     echo "$fingerprint" >> "$fingerprint_path"
   else
-    echo "$fingerprint" >> ",$fingerprint_path"
+    echo ",$fingerprint" >> "$fingerprint_path"
   fi
 
 done
@@ -374,6 +376,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   cat "$family_path" >> "$torrc_file_path"
 
 done
+docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d
 
 ## ###############
 ## 4️⃣ Register with OnionDao
