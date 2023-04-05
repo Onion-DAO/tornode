@@ -335,7 +335,7 @@ done
 echo "Adding Tor fingerprints to family"
 docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down --remove-orphans &> /dev/null
 family_path="$ONIONDAO_PATH/family"
-echo -e "\nMyFamily " > "$family_path"
+echo -n "MyFamily " > "$family_path"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
   fingerprint_path="$DOCKER_COMPOSE_PATH/tor-data-$i/fingerprint"
