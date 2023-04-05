@@ -148,7 +148,7 @@ echo "NODE_BANDWIDTH=$NODE_BANDWIDTH" >> $ONIONDAO_PATH/.oniondaorc
 ## ###############
 
 # Install Docker, see https://docs.docker.com/engine/install/ubuntu/
-echo -e "\nInstalling/updating docker..."
+echo -e "\nRemoving conflicting docker versions docker..."
 sudo apt -y remove docker docker-engine docker.io containerd runc &> /dev/null
 sudo apt update &> /dev/null
 sudo apt -y install \
@@ -156,15 +156,21 @@ sudo apt -y install \
     curl \
     gnupg &> /dev/null
 sudo mkdir -m 0755 -p /etc/apt/keyrings &> /dev/null
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+docker_keyring="/etc/apt/keyrings/docker.gpg"
+if [ ! -f $docker_keyring ]; then
+  echo "No docker gpg key yet, downloading..."
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o $docker_keyring
+fi
 echo \
-  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  "deb [arch="$(dpkg --print-architecture)" signed-by=$docker_keyring] https://download.docker.com/linux/ubuntu \
   "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+echo -e "Installing/updating docker..."
 sudo apt update &> /dev/null
 sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin &> /dev/null
 
 # Get ipv4 of this server
+echo "Getting external ip address"
 REMOTE_IP=$( curl ipv4.icanhazip.com 2> /dev/null )
 if [ ${#REMOTE_IP} -lt 7 ]; then
   echo "Remote ip: icanhaz unavailable, using canhaz"
@@ -197,7 +203,6 @@ fi
 ## ###############
 ## 3️⃣ Create Tor container spec for every DAEMON_AMOUNT
 ## ###############
-rm -rf $DOCKER_COMPOSE_PATH/*
 mkdir -p $DOCKER_COMPOSE_PATH
 echo -e "
 ---
@@ -284,6 +289,19 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
 done
 
+# Restoring backed up keys if they exist
+echo "Backing up Tor keys"
+for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
+
+  data_folder_path="$DOCKER_COMPOSE_PATH/tor-data-$i"
+  key_backup_path="$ONIONDAO_PATH/keys/daemon-$i/"
+  if test -f "$key_backup_path"; then
+    echo "Found backed up keys at $key_backup_path, restoring"
+    cp "$ONIONDAO_PATH/keys/daemon-$i/*" "$data_folder_path/keys/"
+  fi
+
+done
+
 # Start all containers
 cd $DOCKER_COMPOSE_PATH
 docker compose up -d
@@ -306,11 +324,50 @@ until curl "http://127.0.0.1" &> /dev/null; do
   PROGRESS="$PROGRESS#"
   sleep "$RANDOM_BETWEEN_1_AND_5"
 done
+
+echo -e "\nDaemon started, waiting for Tor network connection"
+PROGRESS="#"
 until nc -z 127.0.0.1 9001 &> /dev/null; do
   echo -en "\e[K$PROGRESS"
   RANDOM_BETWEEN_1_AND_5=$(( ( RANDOM % 5 )  + 1 ))
   PROGRESS="$PROGRESS#"
   sleep "$RANDOM_BETWEEN_1_AND_5"
+done
+
+echo "Backing up Tor keys"
+for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
+
+  data_folder_path="$DOCKER_COMPOSE_PATH/tor-data-$i"
+  key_backup_path="$ONIONDAO_PATH/keys/daemon-$i/"
+  until test -f "$data_folder_path/keys/secret_onion_key"; do
+    sleep 5
+  done
+  echo "Found Tor keys in $data_folder_path, backing up"
+  mkdir -p $key_backup_path
+  cp "$data_folder_path/keys/*" "$key_backup_path"
+
+done
+
+# Set family
+echo "Adding Tor fingerprints to family"
+family_path="$ONIONDAO_PATH/family"
+echo -e "\nMyFamily " > "$family_path"
+for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
+
+  fingerprint_path="$DOCKER_COMPOSE_PATH/tor-data-$i/fingerprint"
+  fingerprint=$( cat $fingerprint_path | grep -Po "(?<=\ ).*" )
+  if [[ "$i" == "1" ]]; then
+    echo "$fingerprint" >> "$fingerprint_path"
+  else
+    echo "$fingerprint" >> ",$fingerprint_path"
+  fi
+
+done
+for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
+
+  torrc_file_path="$DOCKER_COMPOSE_PATH/torrc$i"
+  cat "$family_path" >> "$torrc_file_path"
+
 done
 
 ## ###############
