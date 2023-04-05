@@ -344,7 +344,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
     sleep 5
   done
   echo "Found Tor keys in $data_folder_path, backing up"
-  l -lah "$data_folder_path/keys/*"
+  ls -lah "$data_folder_path/keys/*"
   mkdir -p $key_backup_path
   cp "$data_folder_path/keys/*" "$key_backup_path"
 
