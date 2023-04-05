@@ -325,15 +325,6 @@ until curl "http://127.0.0.1" &> /dev/null; do
   sleep "$RANDOM_BETWEEN_1_AND_5"
 done
 
-echo -e "\nDaemon started, waiting for Tor network connection"
-PROGRESS="#"
-until nc -z 127.0.0.1 9001 &> /dev/null; do
-  echo -en "\e[K$PROGRESS"
-  RANDOM_BETWEEN_1_AND_5=$(( ( RANDOM % 5 )  + 1 ))
-  PROGRESS="$PROGRESS#"
-  sleep "$RANDOM_BETWEEN_1_AND_5"
-done
-
 echo "Backing up Tor keys"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
@@ -362,6 +353,10 @@ echo -e "\nMyFamily " > "$family_path"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
   fingerprint_path="$DOCKER_COMPOSE_PATH/tor-data-$i/fingerprint"
+  until test -f "$fingerprint_path"; do
+    echo "Waiting for fingerprint file"
+    sleep 5
+  done
   fingerprint=$( cat $fingerprint_path | grep -Po "(?<=\ ).*" )
   if [[ "$i" == "1" ]]; then
     echo "$fingerprint" >> "$fingerprint_path"
@@ -377,6 +372,15 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
 done
 docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d
+
+echo -e "\nDaemon started, waiting for Tor network connection"
+PROGRESS="#"
+until nc -z 127.0.0.1 9001 &> /dev/null; do
+  echo -en "\e[K$PROGRESS"
+  RANDOM_BETWEEN_1_AND_5=$(( ( RANDOM % 5 )  + 1 ))
+  PROGRESS="$PROGRESS#"
+  sleep "$RANDOM_BETWEEN_1_AND_5"
+done
 
 ## ###############
 ## 4️⃣ Register with OnionDao
