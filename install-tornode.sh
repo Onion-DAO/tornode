@@ -230,6 +230,15 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   torrc_file_path="$DOCKER_COMPOSE_PATH/torrc$i"
   mkdir -p $data_folder_path
 
+  # Nickname of this daemon
+  if [ "$DAEMON_AMOUNT" -eq "1" ]; then
+    DAEMON_NICKNAME=$NODE_NICKNAME
+    echo "Single daemon, nickname is $DAEMON_NICKNAME"
+  else
+    DAEMON_NICKNAME="$NODE_NICKNAME$i"
+    echo "Multiple daemons, nickname is $DAEMON_NICKNAME"
+  fi
+
   # Add docker-compose declarations
   echo -e "
   tor_daemon_$i:
@@ -239,7 +248,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
     ports:
       - \"900$i:900$i\"
     environment:
-      TOR_NICKNAME: $NODE_NICKNAME
+      TOR_NICKNAME: $DAEMON_NICKNAME
       CONTACT_EMAIL: $OPERATOR_EMAIL
       TZ: Europe/London
     volumes:
@@ -337,9 +346,9 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   done
   echo "Found fingerprint $fingerprint for daemon $i"
   if [[ "$i" == "1" ]]; then
-    echo "$fingerprint" >> "$family_path"
+    echo -n "$fingerprint" >> "$family_path"
   else
-    echo ",$fingerprint" >> "$family_path"
+    echo -n ",$fingerprint" >> "$family_path"
   fi
 
 done
