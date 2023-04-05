@@ -335,10 +335,11 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
     sleep 5
     fingerprint=$( cat $fingerprint_path | grep -Po "(?<=\ ).*" )
   done
+  echo "Found fingerprint $fingerprint for daemon $i"
   if [[ "$i" == "1" ]]; then
-    echo "$fingerprint" >> "$fingerprint_path"
+    echo "$fingerprint" >> "$family_path"
   else
-    echo ",$fingerprint" >> "$fingerprint_path"
+    echo ",$fingerprint" >> "$family_path"
   fi
 
 done
@@ -373,7 +374,7 @@ echo -e "\nDaemon started, waiting for Tor network connection"
 PROGRESS="#"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
-  until nc -z 127.0.0.1 "$900$i" &> /dev/null; do
+  until nc -z 127.0.0.1 "900$i" &> /dev/null; do
     echo -en "\e[K$PROGRESS"
     RANDOM_BETWEEN_1_AND_5=$(( ( RANDOM % 5 )  + 1 ))
     PROGRESS="$PROGRESS#"
