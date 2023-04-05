@@ -245,8 +245,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
     image: ilshidur/tor-relay
     container_name: tor_daemon_$i
     restart: unless-stopped
-    ports:
-      - \"900$i:900$i\"
+    net: host
     environment:
       TOR_NICKNAME: $DAEMON_NICKNAME
       CONTACT_EMAIL: $OPERATOR_EMAIL
