@@ -317,7 +317,6 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
   key_path="$DOCKER_COMPOSE_PATH/tor-data-$i/keys"
   key_backup_path="$ONIONDAO_PATH/keys/daemon-$i/"
-  fingerprint_path="$DOCKER_COMPOSE_PATH/tor-data-$i/keys/fingerprint"
   key_count=$( ls -lah $key_path 2> /dev/null | wc -l )
 
   # We expect at least 10 key files
@@ -340,9 +339,10 @@ echo -e "\nMyFamily " > "$family_path"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
   fingerprint_path="$DOCKER_COMPOSE_PATH/tor-data-$i/fingerprint"
+  fingerprint=$( cat $fingerprint_path | grep -Po "(?<=\ ).*" )
   until [ ! -z "$fingerprint" ]; do
     echo "Waiting for fingerprint file at $fingerprint_path"
-    sleep 5
+    sleep 10
     fingerprint=$( cat $fingerprint_path | grep -Po "(?<=\ ).*" )
   done
   echo "Found fingerprint $fingerprint for daemon $i"
