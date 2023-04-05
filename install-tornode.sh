@@ -337,16 +337,19 @@ done
 echo "Backing up Tor keys"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
-  data_folder_path="$DOCKER_COMPOSE_PATH/tor-data-$i"
+  key_path="$DOCKER_COMPOSE_PATH/tor-data-$i/keys"
   key_backup_path="$ONIONDAO_PATH/keys/daemon-$i/"
   fingerprint_path="$DOCKER_COMPOSE_PATH/tor-data-$i/keys/fingerprint"
-  until test -f "$fingerprint_path"; do
+  key_count=$( ls -lah $key_path | wc -l )
+
+  # We expect at least 10 key files
+  until [[ "$key_count" -lt 10 ]]; do
+    echo "Found $key_count key files, waiting for 10"
     sleep 5
   done
-  echo "Found Tor keys in $data_folder_path, backing up"
-  ls -lah "$data_folder_path/keys/*"
+  echo "Found 10 Tor keys in $key_path, backing up"
   mkdir -p $key_backup_path
-  cp "$data_folder_path/keys/*" "$key_backup_path"
+  rsync -a "$key_path/" "$key_backup_path"
 
 done
 
