@@ -230,7 +230,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   mkdir -p $data_folder_path
 
   # Add docker-compose declarations
-  docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down
+  docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down --remove-orphans
   echo -e "
   tor_daemon_$i:
     image: ilshidur/tor-relay
@@ -291,7 +291,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 done
 
 # Restoring backed up keys if they exist
-echo "Backing up Tor keys"
+echo "Restoring Tor keys"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
   data_folder_path="$DOCKER_COMPOSE_PATH/tor-data-$i"
