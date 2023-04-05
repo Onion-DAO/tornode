@@ -204,6 +204,7 @@ fi
 ## 3️⃣ Create Tor container spec for every DAEMON_AMOUNT
 ## ###############
 mkdir -p $DOCKER_COMPOSE_PATH
+docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down --remove-orphans &> /dev/null
 echo -e "
 ---
 version: \"3\"
@@ -230,7 +231,6 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   mkdir -p $data_folder_path
 
   # Add docker-compose declarations
-  docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down --remove-orphans
   echo -e "
   tor_daemon_$i:
     image: ilshidur/tor-relay
@@ -257,7 +257,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
   # Use accounting?
   if [ "$NODE_BANDWIDTH" -eq "0" ]; then
-    echo "No bandwidth limit set in $torrc_file_path"
+    # echo "No bandwidth limit set in $torrc_file_path"
   else
     echo -e "
     # Bandwidth accounting
@@ -276,7 +276,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   " >> $torrc_file_path
 
   if [ -z "$IPV6_ADDRESS" ];then
-    echo "Skipping ipv6 for $torrc_file_path"
+    # echo "Skipping ipv6 for $torrc_file_path"
   else
     echo -e "
       # Ipv6
@@ -304,27 +304,9 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 done
 
 # Start all containers
-docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d
+docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d &> /dev/null
 
-# wait for tor to come online 
-# keep the user entertained with status updates
-echo "Waiting for Tor to come online, just a moment..."
-echo "This can take a few minutes. DO NOT EXIT THIS SCRIPT."
-
-# Write exit file
-cp $ONIONDAO_PATH/fixtures/tor-exit-notice.template.html $ONIONDAO_PATH/fixtures/index.html
-sed -i "s/FIXME_YOUR_EMAIL_ADDRESS/$OPERATOR_EMAIL/g" $ONIONDAO_PATH/fixtures/index.html
-sed -i "s/FIXME_DNS_NAME/$REMOTE_IP/g" $ONIONDAO_PATH/fixtures/index.html
-echo "<!-- OnionDAO address: $OPERATOR_WALLET -->" >> $ONIONDAO_PATH/fixtures/index.html
-
-PROGRESS="#"
-until curl "http://127.0.0.1" &> /dev/null; do
-  echo -en "\e[K$PROGRESS"
-  RANDOM_BETWEEN_1_AND_5=$(( ( RANDOM % 5 )  + 1 ))
-  PROGRESS="$PROGRESS#"
-  sleep "$RANDOM_BETWEEN_1_AND_5"
-done
-
+# Back up keys
 echo "Backing up Tor keys"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
@@ -345,19 +327,18 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 done
 
 # Set family
-
 echo "Adding Tor fingerprints to family"
-docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down --remove-orphans
+docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down --remove-orphans &> /dev/null
 family_path="$ONIONDAO_PATH/family"
 echo -e "\nMyFamily " > "$family_path"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
   fingerprint_path="$DOCKER_COMPOSE_PATH/tor-data-$i/fingerprint"
-  until test -f "$fingerprint_path"; do
-    echo "Waiting for fingerprint file"
+  until [ ! -z "$fingerprint" ]; do
+    echo "Waiting for fingerprint file at $fingerprint_path"
     sleep 5
+    fingerprint=$( cat $fingerprint_path | grep -Po "(?<=\ ).*" )
   done
-  fingerprint=$( cat $fingerprint_path | grep -Po "(?<=\ ).*" )
   if [[ "$i" == "1" ]]; then
     echo "$fingerprint" >> "$fingerprint_path"
   else
@@ -371,16 +352,40 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   cat "$family_path" >> "$torrc_file_path"
 
 done
+
+# wait for tor to come online 
+# keep the user entertained with status updates
+echo "Waiting for Tor to come online, just a moment..."
+echo "This can take a few minutes. DO NOT EXIT THIS SCRIPT."
 docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d
 
-echo -e "\nDaemon started, waiting for Tor network connection"
+# Write exit file
+cp $ONIONDAO_PATH/fixtures/tor-exit-notice.template.html $ONIONDAO_PATH/fixtures/index.html
+sed -i "s/FIXME_YOUR_EMAIL_ADDRESS/$OPERATOR_EMAIL/g" $ONIONDAO_PATH/fixtures/index.html
+sed -i "s/FIXME_DNS_NAME/$REMOTE_IP/g" $ONIONDAO_PATH/fixtures/index.html
+echo "<!-- OnionDAO address: $OPERATOR_WALLET -->" >> $ONIONDAO_PATH/fixtures/index.html
+
 PROGRESS="#"
-until nc -z 127.0.0.1 9001 &> /dev/null; do
+until curl "http://127.0.0.1" &> /dev/null; do
   echo -en "\e[K$PROGRESS"
   RANDOM_BETWEEN_1_AND_5=$(( ( RANDOM % 5 )  + 1 ))
   PROGRESS="$PROGRESS#"
   sleep "$RANDOM_BETWEEN_1_AND_5"
 done
+
+echo -e "\nDaemon started, waiting for Tor network connection"
+PROGRESS="#"
+for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
+
+  until nc -z 127.0.0.1 "$900$i" &> /dev/null; do
+    echo -en "\e[K$PROGRESS"
+    RANDOM_BETWEEN_1_AND_5=$(( ( RANDOM % 5 )  + 1 ))
+    PROGRESS="$PROGRESS#"
+    sleep "$RANDOM_BETWEEN_1_AND_5"
+  done
+
+done
+
 
 ## ###############
 ## 4️⃣ Register with OnionDao
