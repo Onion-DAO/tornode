@@ -256,9 +256,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   fi
 
   # Use accounting?
-  if [ "$NODE_BANDWIDTH" -eq "0" ]; then
-    # echo "No bandwidth limit set in $torrc_file_path"
-  else
+  if [ ! "$NODE_BANDWIDTH" -eq "0" ]; then
     echo -e "
     # Bandwidth accounting
     AccountingStart month 1 00:00
@@ -275,9 +273,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
     ControlPort 905$i
   " >> $torrc_file_path
 
-  if [ -z "$IPV6_ADDRESS" ];then
-    # echo "Skipping ipv6 for $torrc_file_path"
-  else
+  if [ ! -z "$IPV6_ADDRESS" ];then
     echo -e "
       # Ipv6
       IPv6Exit 1
