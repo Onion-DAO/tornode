@@ -204,7 +204,7 @@ fi
 ## 3️⃣ Create Tor container spec for every DAEMON_AMOUNT
 ## ###############
 mkdir -p $DOCKER_COMPOSE_PATH
-docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down --remove-orphans &> /dev/null
+docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down --remove-orphans 1> /dev/null
 echo -e "
 ---
 version: \"3\"
@@ -245,7 +245,8 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
     image: ilshidur/tor-relay
     container_name: tor_daemon_$i
     restart: unless-stopped
-    network_mode: host
+    ports:
+      - "900$i:900$i"
     environment:
       TOR_NICKNAME: $DAEMON_NICKNAME
       CONTACT_EMAIL: $OPERATOR_EMAIL
@@ -308,7 +309,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 done
 
 # Start all containers
-docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d &> /dev/null
+docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d 1> /dev/null
 
 # Back up keys
 echo "Backing up Tor keys"
@@ -332,7 +333,7 @@ done
 
 # Set family
 echo "Adding Tor fingerprints to family"
-docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down --remove-orphans &> /dev/null
+docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down --remove-orphans 1> /dev/null
 family_path="$ONIONDAO_PATH/family"
 echo -n "MyFamily " > "$family_path"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
@@ -363,7 +364,7 @@ done
 # keep the user entertained with status updates
 echo "Waiting for Tor to come online, just a moment..."
 echo "This can take a few minutes. DO NOT EXIT THIS SCRIPT."
-docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d
+docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d 1> /dev/null
 
 # Write exit file
 cp $ONIONDAO_PATH/fixtures/tor-exit-notice.template.html $ONIONDAO_PATH/fixtures/index.html
