@@ -230,6 +230,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   mkdir -p $data_folder_path
 
   # Add docker-compose declarations
+  docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down
   echo -e "
   tor_daemon_$i:
     image: ilshidur/tor-relay
@@ -303,8 +304,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 done
 
 # Start all containers
-cd $DOCKER_COMPOSE_PATH
-docker compose up -d
+docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d
 
 # wait for tor to come online 
 # keep the user entertained with status updates
