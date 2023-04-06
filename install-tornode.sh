@@ -247,12 +247,13 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
     restart: unless-stopped
     ports:
       - "900$i:900$i"
+      - "905$i:905$i"
     environment:
       TOR_NICKNAME: $DAEMON_NICKNAME
       CONTACT_EMAIL: $OPERATOR_EMAIL
       TZ: Europe/London
     volumes:
-      - $data_folder_path:/data:Z
+      - $data_folder_path:/data
       - $torrc_file_path:/etc/tor/torrc:ro
   " >> "$DOCKER_COMPOSE_PATH/docker-compose.yml"
 
@@ -279,6 +280,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
     Nickname $NODE_NICKNAME
     ContactInfo $OPERATOR_EMAIL
     ORPort 900$i
+    DirPort 905$i
     ControlPort 905$i
   " >> $torrc_file_path
 
