@@ -97,7 +97,7 @@ if test -f $DOCKER_COMPOSE_PATH/torrc1; then
   echo_cyan "Daemon amount: $DAEMON_AMOUNT"
   echo_cyan "Reduced exit policy: $REDUCED_EXIT_POLICY\n"
 
-  read -p "Keep existing configurations? [Y/n] (default Y): " KEEP_OLD_CONFIGS
+  read -p "${C_CYAN}Keep existing configurations? [Y/n] (default Y): ${C_DEFAULT}" KEEP_OLD_CONFIGS
   KEEP_OLD_CONFIGS=${KEEP_OLD_CONFIGS:-"Y"}
 
 fi
@@ -112,18 +112,18 @@ else
   echo "Tor setup needs some information"
   echo -e "----------------------------------------\n\n"
 
-  read -p "How many TB is this node allowed to use per month? (default 1, use 0 for unlimited): " NODE_BANDWIDTH
+  read -p "${C_CYAN}How many TB is this node allowed to use per month? (default 1, use 0 for unlimited): ${C_DEFAULT}" NODE_BANDWIDTH
   NODE_BANDWIDTH=${NODE_BANDWIDTH:-"1"}
 
   echo -e "\nAre you on an (expensive) fully unmetered 1-10 Gbps connection?"
   echo "If so, you can run multiple daemons (up to 4 per ip address)."
-  read -p "How many daemons do you want to run? (default 1): " DAEMON_AMOUNT
+  read -p "${C_CYAN}How many daemons do you want to run? (default 1):${C_DEFAULT}" DAEMON_AMOUNT
   DAEMON_AMOUNT=${DAEMON_AMOUNT:-"1"}
 
   echo -e "\nThere are 2 available exit policies in this script: ReducedExitPolicy and WebOnly."
   echo "ReducedExitPolicy: blocks most abuse ports (like Torrents, Email, etc)"
   echo -e "WebOnly: allows for only http(s) traffic, which is only partially useful to the Network\n"
-  read -p "Do you want to ReducedExitPolicy? [Y/n] (default Y): " REDUCED_EXIT_POLICY
+  read -p "${C_CYAN}Do you want to ReducedExitPolicy? [Y/n] (default Y): ${C_DEFAULT}" REDUCED_EXIT_POLICY
   REDUCED_EXIT_POLICY=${REDUCED_EXIT_POLICY:-"Y"}
 
   echo -e "\n\n----------------------------------------"
@@ -132,27 +132,27 @@ else
 
   echo "⚠️ Note: Tor needs a valid email address so you can be contacted if there is an issue."
   echo -e "This address is public, you may want to use a dedicated email account for this, or if you use gmail use the + operator like so: yourname+tor@gmail.com. Read more about task-specific addresses here: https://support.google.com/a/users/answer/9308648?hl=en\n"
-  read -p "Your email (requirement for a Tor node): " OPERATOR_EMAIL
+  read -p "${C_CYAN}Your email (requirement for a Tor node): ${C_DEFAULT}" OPERATOR_EMAIL
 
   echo -e "\nYour node nickname is visible on the leaderboard at https://tor-relay.co/"
-  read -p "Node nickname (requirement for a Tor node, only letters and numbers): " NODE_NICKNAME
+  read -p "${C_CYAN}Node nickname (requirement for a Tor node, only letters and numbers): ${C_DEFAULT}" NODE_NICKNAME
 
   echo -e "\nYour Twitter handle is OPTIONAL and purely so you can be tweeted at if needed"
-  read -p "Your twitter handle (optional): " OPERATOR_TWITTER
+  read -p "${C_CYAN}Your twitter handle (optional): ${C_DEFAULT}" OPERATOR_TWITTER
 
   # force node nickname to be only alphanumeric
   NODE_NICKNAME=$( echo $NODE_NICKNAME | tr -cd '[:alnum:]' )
 
-  read -p "Your wallet address or ENS (to receive POAP): " OPERATOR_WALLET
+  read -p "${C_CYAN}Your wallet address or ENS (to receive POAP): ${C_DEFAULT}" OPERATOR_WALLET
 
-  echo_cyan  "\n\n----------------------------------------"
-  echo_cyan  "Check your information"
-  echo_cyan  "----------------------------------------"
-  echo_cyan  "POAP wallet: $OPERATOR_WALLET"
-  echo_cyan  "Node nickname: $NODE_NICKNAME"
-  echo_cyan  "Operator email: $OPERATOR_EMAIL"
-  echo_cyan  "Operator twitter: $OPERATOR_TWITTER"
-  echo_cyan  "Monthly bandwidth limit: $NODE_BANDWIDTH TB\n"
+  echo_green  "\n\n----------------------------------------"
+  echo_green  "Check your information"
+  echo_green  "----------------------------------------"
+  echo_green  "POAP wallet: $OPERATOR_WALLET"
+  echo_green  "Node nickname: $NODE_NICKNAME"
+  echo_green  "Operator email: $OPERATOR_EMAIL"
+  echo_green  "Operator twitter: $OPERATOR_TWITTER"
+  echo_green  "Monthly bandwidth limit: $NODE_BANDWIDTH TB\n"
   echo_cyan "Press any key to continue or ctrl+c to exit..."
   read
 
@@ -169,7 +169,7 @@ echo "NODE_BANDWIDTH=$NODE_BANDWIDTH" >> $ONIONDAO_PATH/.oniondaorc
 ## ###############
 
 # Install Docker, see https://docs.docker.com/engine/install/ubuntu/
-echo -e "\nRemoving conflicting docker versions docker..."
+echo -e "\nRemoving conflicting docker versions..."
 sudo apt -y remove docker docker-engine docker.io containerd runc &> /dev/null
 sudo apt update &> /dev/null
 sudo apt -y install \
@@ -225,7 +225,7 @@ fi
 ## 3️⃣ Create Tor container spec for every DAEMON_AMOUNT
 ## ###############
 mkdir -p $DOCKER_COMPOSE_PATH
-docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down --remove-orphans 1> /dev/null
+docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down --remove-orphans &> /dev/null
 echo -e "
 ---
 version: \"3\"
@@ -332,7 +332,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 done
 
 # Start all containers
-docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d 1> /dev/null
+docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d &> /dev/null
 
 # Back up keys
 echo "Backing up Tor keys"
@@ -356,7 +356,7 @@ done
 
 # Set family
 echo "Adding Tor fingerprints to family"
-docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down --remove-orphans 1> /dev/null
+docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down --remove-orphans &> /dev/null
 family_path="$ONIONDAO_PATH/family"
 echo -n "MyFamily " > "$family_path"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
@@ -387,7 +387,7 @@ done
 # keep the user entertained with status updates
 echo "Waiting for Tor to come online, just a moment..."
 echo_cyan "This can take a few minutes. DO NOT EXIT THIS SCRIPT."
-docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d 1> /dev/null
+docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d &> /dev/null
 
 # Write exit file
 cp $ONIONDAO_PATH/fixtures/tor-exit-notice.template.html $ONIONDAO_PATH/fixtures/index.html
@@ -403,11 +403,23 @@ until curl "http://127.0.0.1" &> /dev/null; do
   sleep "$RANDOM_BETWEEN_1_AND_5"
 done
 
-echo -e "\nDaemon started, waiting for Tor network connection"
+echo_green "\nDaemon started, waiting for Tor network connection"
 PROGRESS="#"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
   until nc -z 127.0.0.1 "900$i" &> /dev/null; do
+    echo -en "\e[K$PROGRESS"
+    RANDOM_BETWEEN_1_AND_5=$(( ( RANDOM % 5 )  + 1 ))
+    PROGRESS="$PROGRESS#"
+    sleep "$RANDOM_BETWEEN_1_AND_5"
+  done
+
+done
+echo_green "Tor daemon started, waiting for bootstrap to succeed"
+PROGRESS="#"
+for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
+
+  until docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml "logs "tor_daemon_$i" | grep -q "Bootstrapped 100" &> /dev/null; do
     echo -en "\e[K$PROGRESS"
     RANDOM_BETWEEN_1_AND_5=$(( ( RANDOM % 5 )  + 1 ))
     PROGRESS="$PROGRESS#"
@@ -479,10 +491,10 @@ curl -X POST https://oniondao.web.app/api/tor_nodes \
   -H 'Content-Type: application/json' \
   -d "$post_data"
 
-echo -e "\n\n------------------------------------------------------"
+echo_green "\n\n------------------------------------------------------"
 echo_green "Want to stay up to date on OnionDAO developments?"
-echo -e "------------------------------------------------------\n"
-echo -e "👉 Join us in the Rocketeer discord in the #onion-dao channel: https://discord.gg/rocketeers\n"
+echo_green "------------------------------------------------------\n"
+echo_green  "👉 Join us in the Rocketeer discord in the #onion-dao channel: https://discord.gg/rocketeers\n"
 
 # 🔥 add the current user to the tor user group so that we can run Nyx without sudo
 # this is a known Nyx annoyance, see https://github.com/torproject/nyx/issues/24
