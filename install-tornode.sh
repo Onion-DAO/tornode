@@ -24,15 +24,15 @@ C_CYAN="\e[36m"
 C_DEFAULT="\e[39m"
 
 function echo_cyan() {
-  echo -e "${C_CYAN}$1"
+  echo -e "${C_CYAN}$1${C_DEFAULT}"
 }
 
 function echo_red() {
-  echo -e "${C_RED}$1"
+  echo -e "${C_RED}$1${C_DEFAULT}"
 }
 
 function echo_green() {
-  echo -e "${C_GREEN}$1"
+  echo -e "${C_GREEN}$1${C_DEFAULT}"
 }
 
 ## ###############
