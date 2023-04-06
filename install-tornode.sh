@@ -345,6 +345,9 @@ done
 # Start all containers
 docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d &> /dev/null
 
+# Set folder permissions for container use
+chown -R 1000 "$$DOCKER_COMPOSE_PATH/tor*"
+
 # Back up keys
 echo "Backing up Tor keys"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
