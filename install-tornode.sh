@@ -208,7 +208,7 @@ echo_green "Public ipv4 detected: $REMOTE_IP"
 
 # Checking for ipv6
 echo "Testing IPV6..."
-ping6 -c2 2001:858:2:2:aabb:0:563b:1526 && ping6 -c2 2620:13:4000:6000::1000:118 && ping6 -c2 2001:67c:289c::9 && ping6 -c2 2001:678:558:1000::244 && ping6 -c2 2607:8500:154::3 && ping6 -c2 2001:638:a000:4140::ffff:189 && IPV6_GOOD=true
+ping6 -c2 2001:858:2:2:aabb:0:563b:1526 &> /dev/null || ping6 -c2 2620:13:4000:6000::1000:118 &> /dev/null || ping6 -c2 2001:67c:289c::9 &> /dev/null || ping6 -c2 2001:678:558:1000::244 &> /dev/null || ping6 -c2 2607:8500:154::3 &> /dev/null || ping6 -c2 2001:638:a000:4140::ffff:189 && IPV6_GOOD=true
 if [ -z "$IPV6_GOOD" ]; then
   echo_red "No ipv6 support, ignoring ipv6"
 else
@@ -275,11 +275,9 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
       - "900$i:900$i"
       - "905$i:905$i"
     environment:
-      TOR_NICKNAME: $DAEMON_NICKNAME
-      CONTACT_EMAIL: $OPERATOR_EMAIL
-      TZ: Europe/London
-      PUID: 1000
-      PGID: 1000
+      - TZ=Europe/London
+      - PUID=1000
+      - PGID=1000
     volumes:
       - $data_folder_path:/data
       - $torrc_file_path:/etc/tor/torrc:ro
@@ -344,9 +342,6 @@ done
 
 # Start all containers
 docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d &> /dev/null
-
-# Set folder permissions for container use
-chown -R 1000 "$$DOCKER_COMPOSE_PATH/tor*"
 
 # Back up keys
 echo "Backing up Tor keys"
