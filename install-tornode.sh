@@ -5,6 +5,9 @@ BIN_FOLDER=/usr/local/sbin
 ONIONDAO_PATH="$HOME/.oniondao"
 DOCKER_COMPOSE_PATH="$ONIONDAO_PATH/docker-composition"
 
+# Make oniondao path in case tornode is installed without top level oniondao
+mkdir -p "$ONIONDAO_PATH"
+
 ## ###############
 ## Force latest version
 ## ###############
