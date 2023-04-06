@@ -24,15 +24,15 @@ C_CYAN="\e[36m"
 C_DEFAULT="\e[39m"
 
 function echo_cyan() {
-  echo -e "${C_CYAN}$1${C_DEFAULT}"
+  echo -e "${C_CYAN}$1"
 }
 
 function echo_red() {
-  echo -e "${C_RED}$1${C_DEFAULT}"
+  echo -e "${C_RED}$1"
 }
 
 function echo_green() {
-  echo -e "${C_GREEN}$1${C_DEFAULT}"
+  echo -e "${C_GREEN}$1"
 }
 
 ## ###############
@@ -97,7 +97,7 @@ if test -f $DOCKER_COMPOSE_PATH/torrc1; then
   echo_cyan "Daemon amount: $DAEMON_AMOUNT"
   echo_cyan "Reduced exit policy: $REDUCED_EXIT_POLICY\n"
 
-  read -p "${C_CYAN}Keep existing configurations? [Y/n] (default Y): ${C_DEFAULT}" KEEP_OLD_CONFIGS
+  read -p "Keep existing configurations? [Y/n] (default Y): " KEEP_OLD_CONFIGS
   KEEP_OLD_CONFIGS=${KEEP_OLD_CONFIGS:-"Y"}
 
 fi
@@ -112,18 +112,18 @@ else
   echo "Tor setup needs some information"
   echo -e "----------------------------------------\n\n"
 
-  read -p "${C_CYAN}How many TB is this node allowed to use per month? (default 1, use 0 for unlimited): ${C_DEFAULT}" NODE_BANDWIDTH
+  read -p "How many TB is this node allowed to use per month? (default 1, use 0 for unlimited): " NODE_BANDWIDTH
   NODE_BANDWIDTH=${NODE_BANDWIDTH:-"1"}
 
   echo -e "\nAre you on an (expensive) fully unmetered 1-10 Gbps connection?"
   echo "If so, you can run multiple daemons (up to 4 per ip address)."
-  read -p "${C_CYAN}How many daemons do you want to run? (default 1):${C_DEFAULT}" DAEMON_AMOUNT
+  read -p "How many daemons do you want to run? (default 1):" DAEMON_AMOUNT
   DAEMON_AMOUNT=${DAEMON_AMOUNT:-"1"}
 
   echo -e "\nThere are 2 available exit policies in this script: ReducedExitPolicy and WebOnly."
   echo "ReducedExitPolicy: blocks most abuse ports (like Torrents, Email, etc)"
   echo -e "WebOnly: allows for only http(s) traffic, which is only partially useful to the Network\n"
-  read -p "${C_CYAN}Do you want to ReducedExitPolicy? [Y/n] (default Y): ${C_DEFAULT}" REDUCED_EXIT_POLICY
+  read -p "Do you want to ReducedExitPolicy? [Y/n] (default Y): " REDUCED_EXIT_POLICY
   REDUCED_EXIT_POLICY=${REDUCED_EXIT_POLICY:-"Y"}
 
   echo -e "\n\n----------------------------------------"
@@ -132,18 +132,18 @@ else
 
   echo "⚠️ Note: Tor needs a valid email address so you can be contacted if there is an issue."
   echo -e "This address is public, you may want to use a dedicated email account for this, or if you use gmail use the + operator like so: yourname+tor@gmail.com. Read more about task-specific addresses here: https://support.google.com/a/users/answer/9308648?hl=en\n"
-  read -p "${C_CYAN}Your email (requirement for a Tor node): ${C_DEFAULT}" OPERATOR_EMAIL
+  read -p "Your email (requirement for a Tor node): " OPERATOR_EMAIL
 
   echo -e "\nYour node nickname is visible on the leaderboard at https://tor-relay.co/"
-  read -p "${C_CYAN}Node nickname (requirement for a Tor node, only letters and numbers): ${C_DEFAULT}" NODE_NICKNAME
+  read -p "Node nickname (requirement for a Tor node, only letters and numbers): " NODE_NICKNAME
 
   echo -e "\nYour Twitter handle is OPTIONAL and purely so you can be tweeted at if needed"
-  read -p "${C_CYAN}Your twitter handle (optional): ${C_DEFAULT}" OPERATOR_TWITTER
+  read -p "Your twitter handle (optional): " OPERATOR_TWITTER
 
   # force node nickname to be only alphanumeric
   NODE_NICKNAME=$( echo $NODE_NICKNAME | tr -cd '[:alnum:]' )
 
-  read -p "${C_CYAN}Your wallet address or ENS (to receive POAP): ${C_DEFAULT}" OPERATOR_WALLET
+  read -p "Your wallet address or ENS (to receive POAP): " OPERATOR_WALLET
 
   echo_green  "\n\n----------------------------------------"
   echo_green  "Check your information"
