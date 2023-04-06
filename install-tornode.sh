@@ -14,6 +14,24 @@ sudo cp $ONIONDAO_PATH/oniondao.sh $BIN_FOLDER/oniondao
 sudo chmod 755 $BIN_FOLDER/oniondao
 sudo chmod u+x $BIN_FOLDER/oniondao
 
+# Helpers
+C_RED="\e[31m"
+C_GREEN="\e[32m"
+C_CYAN="\e[36m"
+C_DEFAULT="\e[39m"
+
+function echo_cyan() {
+  echo -e "${C_CYAN}$1${C_DEFAULT}"
+}
+
+function echo_red() {
+  echo -e "${C_RED}$1${C_DEFAULT}"
+}
+
+function echo_green() {
+  echo -e "${C_GREEN}$1${C_DEFAULT}"
+}
+
 ## ###############
 ## Tor POAP config
 ## ###############
@@ -64,17 +82,17 @@ if test -f $DOCKER_COMPOSE_PATH/torrc1; then
   OPERATOR_TWITTER=$( grep -Po "(?<=OPERATOR_TWITTER=)(.*)" "$ONIONDAO_PATH/.oniondaorc" 2> /dev/null )
   REDUCED_EXIT_POLICY=$( grep -Po "(?<=REDUCED_EXIT_POLICY=)(.*)" "$ONIONDAO_PATH/.oniondaorc" 2> /dev/null )
 
-  echo -e "\n\n----------------------------------------"
-  echo "You have existing configurations:"
-  echo -e "----------------------------------------\n\n"
+  echo_cyan  "\n\n----------------------------------------"
+  echo_cyan "You have existing configurations:"
+  echo_cyan  "----------------------------------------\n\n"
 
-  echo "POAP wallet: $OPERATOR_WALLET"
-  echo "Node nickname: $NODE_NICKNAME"
-  echo "Operator email: $OPERATOR_EMAIL"
-  echo "Operator twitter: $OPERATOR_TWITTER"
-  echo "Monthly bandwidth limit: $NODE_BANDWIDTH TB"
-  echo "Daemon amount: $DAEMON_AMOUNT"
-  echo -e "Reduced exit policy: $REDUCED_EXIT_POLICY\n"
+  echo_cyan "POAP wallet: $OPERATOR_WALLET"
+  echo_cyan "Node nickname: $NODE_NICKNAME"
+  echo_cyan "Operator email: $OPERATOR_EMAIL"
+  echo_cyan "Operator twitter: $OPERATOR_TWITTER"
+  echo_cyan "Monthly bandwidth limit: $NODE_BANDWIDTH TB"
+  echo_cyan "Daemon amount: $DAEMON_AMOUNT"
+  echo_cyan "Reduced exit policy: $REDUCED_EXIT_POLICY\n"
 
   read -p "Keep existing configurations? [Y/n] (default Y): " KEEP_OLD_CONFIGS
   KEEP_OLD_CONFIGS=${KEEP_OLD_CONFIGS:-"Y"}
@@ -124,15 +142,15 @@ else
 
   read -p "Your wallet address or ENS (to receive POAP): " OPERATOR_WALLET
 
-  echo  -e "\n\n----------------------------------------"
-  echo  "Check your information"
-  echo  "----------------------------------------"
-  echo  "POAP wallet: $OPERATOR_WALLET"
-  echo  "Node nickname: $NODE_NICKNAME"
-  echo  "Operator email: $OPERATOR_EMAIL"
-  echo  "Operator twitter: $OPERATOR_TWITTER"
-  echo  -e "Monthly bandwidth limit: $NODE_BANDWIDTH TB\n"
-  echo "Press any key to continue or ctrl+c to exit..."
+  echo_cyan  "\n\n----------------------------------------"
+  echo_cyan  "Check your information"
+  echo_cyan  "----------------------------------------"
+  echo_cyan  "POAP wallet: $OPERATOR_WALLET"
+  echo_cyan  "Node nickname: $NODE_NICKNAME"
+  echo_cyan  "Operator email: $OPERATOR_EMAIL"
+  echo_cyan  "Operator twitter: $OPERATOR_TWITTER"
+  echo_cyan  "Monthly bandwidth limit: $NODE_BANDWIDTH TB\n"
+  echo_cyan "Press any key to continue or ctrl+c to exit..."
   read
 
 fi
@@ -187,11 +205,11 @@ fi
 echo "Testing IPV6..."
 ping6 -c2 2001:858:2:2:aabb:0:563b:1526 && ping6 -c2 2620:13:4000:6000::1000:118 && ping6 -c2 2001:67c:289c::9 && ping6 -c2 2001:678:558:1000::244 && ping6 -c2 2607:8500:154::3 && ping6 -c2 2001:638:a000:4140::ffff:189 && IPV6_GOOD=true
 if [ -z "$IPV6_GOOD" ]; then
-  echo "No ipv6 support, ignoring ipv6"
+  echo_red "No ipv6 support, ignoring ipv6"
 else
   IPV6_ADDRESS=$(ip -6 addr | grep inet6 | grep "scope global" | awk '{print $2}' | cut -d'/' -f1)
   if [ -z "$IPV6_ADDRESS" ];then
-      echo "Could not automatically find your IPv6 address"
+      echo_red "Could not automatically find your IPv6 address"
       echo "If you know your global (!) IPv6 address you can enter it now"
       echo "Please make sure that you enter it correctly and do not enter any other characters"
       echo "If you want to skip manual IPv6 setup leave the line blank and just press ENTER"
@@ -323,11 +341,11 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
   # We expect at least 10 key files
   until [[ "$key_count" -gt 9 ]]; do
-    echo "Found $key_count key files, waiting for 10"
+    echo "Found $key_count key files, waiting for Tor setup to complete"
     key_count=$( ls -lah $key_path 2> /dev/null | wc -l )
-    sleep 5
+    sleep 10
   done
-  echo "Found 10 Tor keys in $key_path, backing up"
+  echo_green "Found 10 Tor keys in $key_path, backing up"
   mkdir -p $key_backup_path
   rsync -a "$key_path/" "$key_backup_path"
 
@@ -365,7 +383,7 @@ done
 # wait for tor to come online 
 # keep the user entertained with status updates
 echo "Waiting for Tor to come online, just a moment..."
-echo "This can take a few minutes. DO NOT EXIT THIS SCRIPT."
+echo_cyan "This can take a few minutes. DO NOT EXIT THIS SCRIPT."
 docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d 1> /dev/null
 
 # Write exit file
@@ -434,7 +452,7 @@ echo -e "------------------------------------------------------\n"
 
 # Check for the (current) edge case that this is a ipv6-only server, assumption: if we could not find an ipv4, you are an ipv6
 if [ ${#REMOTE_IP} -lt 7 ]; then
-  echo "Could not find an ipv4 address for your server, using ipv6"
+  echo_red "Could not find an ipv4 address for your server, using ipv6"
   REMOTE_IP="$IPV6_ADDRESS"
 fi
 
@@ -459,7 +477,7 @@ curl -X POST https://oniondao.web.app/api/tor_nodes \
   -d "$post_data"
 
 echo -e "\n\n------------------------------------------------------"
-echo "Want to stay up to date on OnionDAO developments?"
+echo_green "Want to stay up to date on OnionDAO developments?"
 echo -e "------------------------------------------------------\n"
 echo -e "👉 Join us in the Rocketeer discord in the #onion-dao channel: https://discord.gg/rocketeers\n"
 
