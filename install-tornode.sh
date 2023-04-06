@@ -261,10 +261,8 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   # Nickname of this daemon
   if [ "$DAEMON_AMOUNT" -eq "1" ]; then
     DAEMON_NICKNAME=$NODE_NICKNAME
-    echo "Single daemon, nickname is $DAEMON_NICKNAME"
   else
     DAEMON_NICKNAME="$NODE_NICKNAME$i"
-    echo "Multiple daemons, nickname is $DAEMON_NICKNAME"
   fi
 
   # Add docker-compose declarations
@@ -280,8 +278,8 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
       TOR_NICKNAME: $DAEMON_NICKNAME
       CONTACT_EMAIL: $OPERATOR_EMAIL
       TZ: Europe/London
-      PUID: $(id -u)
-      PGID: $(id -g)
+      PUID: 1000
+      PGID: 1000
     volumes:
       - $data_folder_path:/data
       - $torrc_file_path:/etc/tor/torrc:ro
@@ -356,10 +354,14 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   key_count=$( ls -lah $key_path 2> /dev/null | wc -l )
 
   # We expect at least 10 key files
-  echo "Waiting for key generation (this can taker a while)"
+  echo "Waiting for key generation (this can take a while)"
+  PROGRESS="#"
   until [[ "$key_count" -gt 9 ]]; do
     key_count=$( ls -lah $key_path 2> /dev/null | wc -l )
-    sleep 10
+    echo -en "\e[K$PROGRESS"
+    RANDOM_BETWEEN_5_AND_10=$(( ( RANDOM % 5 )  + 5 ))
+    PROGRESS="$PROGRESS#"
+    sleep "$RANDOM_BETWEEN_5_AND_10"
   done
   echo_green "Found 10 Tor keys in $key_path, backing up"
   mkdir -p $key_backup_path
