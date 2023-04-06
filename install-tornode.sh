@@ -43,7 +43,7 @@ cat << "EOF"
 
 ==========================================================
 
-__   __ _  __  __   __ _    ____   __    __   ____ 
+  __   __ _  __  __   __ _    ____   __    __   ____ 
  /  \ (  ( \(  )/  \ (  ( \  (  _ \ /  \  / _\ (  _ \
 (  O )/    / )((  O )/    /   ) __/(  O )/    \ ) __/
  \__/ \_)__)(__)\__/ \_)__)  (__)   \__/ \_/\_/(__)
@@ -169,8 +169,9 @@ echo "NODE_BANDWIDTH=$NODE_BANDWIDTH" >> $ONIONDAO_PATH/.oniondaorc
 ## ###############
 
 # Install Docker, see https://docs.docker.com/engine/install/ubuntu/
-echo -e "\nRemoving conflicting docker versions..."
+echo -e "\nDetecting conflicting docker versions..."
 sudo apt -y remove docker docker-engine docker.io containerd runc &> /dev/null
+echo -e "Setting up docker dependencies"
 sudo apt update &> /dev/null
 sudo apt -y install \
     ca-certificates \
@@ -203,6 +204,7 @@ elif [ ${#REMOTE_IP} -lt 7 ]; then
   echo "Remote ip: ipify unavailable, using seeip"
   REMOTE_IP=$( curl https://ip4.seeip.org 2> /dev/null )
 fi
+echo_green "Public ipv4 detected: $REMOTE_IP"
 
 # Checking for ipv6
 echo "Testing IPV6..."
@@ -211,21 +213,26 @@ if [ -z "$IPV6_GOOD" ]; then
   echo_red "No ipv6 support, ignoring ipv6"
 else
   IPV6_ADDRESS=$(ip -6 addr | grep inet6 | grep "scope global" | awk '{print $2}' | cut -d'/' -f1)
-  if [ -z "$IPV6_ADDRESS" ];then
+  if [ -z "$IPV6_ADDRESS" ]; then
       echo_red "Could not automatically find your IPv6 address"
       echo "If you know your global (!) IPv6 address you can enter it now"
       echo "Please make sure that you enter it correctly and do not enter any other characters"
       echo "If you want to skip manual IPv6 setup leave the line blank and just press ENTER"
       read -p "IPv6 address: " IPV6_ADDRESS
-    fi
+  fi
+
+  if [ ! -z "$IPV6_ADDRESS" ]; then
+    echo_green "IPV6 address detected: $IPV6_ADDRESS"
+  fi
 
 fi
 
 ## ###############
 ## 3️⃣ Create Tor container spec for every DAEMON_AMOUNT
 ## ###############
-mkdir -p $DOCKER_COMPOSE_PATH
 docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" down --remove-orphans &> /dev/null
+rm -rf $DOCKER_COMPOSE_PATH
+mkdir -p $DOCKER_COMPOSE_PATH
 echo -e "
 ---
 version: \"3\"
@@ -273,6 +280,8 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
       TOR_NICKNAME: $DAEMON_NICKNAME
       CONTACT_EMAIL: $OPERATOR_EMAIL
       TZ: Europe/London
+      PUID: $(id -u)
+      PGID: $(id -g)
     volumes:
       - $data_folder_path:/data
       - $torrc_file_path:/etc/tor/torrc:ro
@@ -318,6 +327,10 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
 done
 
+## ###############
+## Restore and back up keys
+## ###############
+
 # Restoring backed up keys if they exist
 echo "Restoring Tor keys"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
@@ -325,7 +338,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   data_folder_path="$DOCKER_COMPOSE_PATH/tor-data-$i"
   key_backup_path="$ONIONDAO_PATH/keys/daemon-$i/"
   if test -f "$key_backup_path"; then
-    echo "Found backed up keys at $key_backup_path, restoring"
+    echo_green "Found backed up keys at $key_backup_path, restoring"
     cp "$ONIONDAO_PATH/keys/daemon-$i/*" "$data_folder_path/keys/"
   fi
 
@@ -343,8 +356,8 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   key_count=$( ls -lah $key_path 2> /dev/null | wc -l )
 
   # We expect at least 10 key files
+  echo "Waiting for key generation (this can taker a while)"
   until [[ "$key_count" -gt 9 ]]; do
-    echo "Found $key_count key files, waiting for Tor setup to complete"
     key_count=$( ls -lah $key_path 2> /dev/null | wc -l )
     sleep 10
   done
@@ -383,7 +396,10 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
 done
 
-# wait for tor to come online 
+## ###############
+## Wait for Tor
+## ###############
+
 # keep the user entertained with status updates
 echo "Waiting for Tor to come online, just a moment..."
 echo_cyan "This can take a few minutes. DO NOT EXIT THIS SCRIPT."
@@ -395,6 +411,7 @@ sed -i "s/FIXME_YOUR_EMAIL_ADDRESS/$OPERATOR_EMAIL/g" $ONIONDAO_PATH/fixtures/in
 sed -i "s/FIXME_DNS_NAME/$REMOTE_IP/g" $ONIONDAO_PATH/fixtures/index.html
 echo "<!-- OnionDAO address: $OPERATOR_WALLET -->" >> $ONIONDAO_PATH/fixtures/index.html
 
+# Wait for exit notice web server
 PROGRESS="#"
 until curl "http://127.0.0.1" &> /dev/null; do
   echo -en "\e[K$PROGRESS"
@@ -403,6 +420,7 @@ until curl "http://127.0.0.1" &> /dev/null; do
   sleep "$RANDOM_BETWEEN_1_AND_5"
 done
 
+# Wait for ORport availability
 echo_green "\nDaemon started, waiting for Tor network connection"
 PROGRESS="#"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
@@ -415,11 +433,13 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   done
 
 done
+
+# Wait for bootstrap
 echo_green "Tor daemon started, waiting for bootstrap to succeed"
 PROGRESS="#"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
-  until docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml "logs "tor_daemon_$i" | grep -q "Bootstrapped 100" &> /dev/null; do
+  until docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" logs "tor_daemon_$i" | grep -q "Bootstrapped 100" &> /dev/null; do
     echo -en "\e[K$PROGRESS"
     RANDOM_BETWEEN_1_AND_5=$(( ( RANDOM % 5 )  + 1 ))
     PROGRESS="$PROGRESS#"
@@ -437,7 +457,7 @@ cat << "EOF"
 
 ===========================================
 
-__   __ _  __  __   __ _    ____   __    __   ____ 
+  __   __ _  __  __   __ _    ____   __    __   ____ 
  /  \ (  ( \(  )/  \ (  ( \  (  _ \ /  \  / _\ (  _ \
 (  O )/    / )((  O )/    /   ) __/(  O )/    \ ) __/
  \__/ \_)__)(__)\__/ \_)__)  (__)   \__/ \_/\_/(__)
