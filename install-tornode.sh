@@ -267,10 +267,11 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   fi
 
   # Add docker-compose declarations
-  docker pull actuallymentor/alpine-tor-relay &> /dev/null
+  DOCKER_IMAGE=osminogin/tor-simple
+  docker pull $DOCKER_IMAGE &> /dev/null
   echo -e "
   tor_daemon_$i:
-    image: actuallymentor/alpine-tor-relay
+    image: $DOCKER_IMAGE
     container_name: tor_daemon_$i
     restart: unless-stopped
     ports:
