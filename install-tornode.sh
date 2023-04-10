@@ -267,6 +267,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   fi
 
   # Add docker-compose declarations
+  docker pull actuallymentor/alpine-tor-relay
   echo -e "
   tor_daemon_$i:
     image: actuallymentor/alpine-tor-relay
