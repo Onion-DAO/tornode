@@ -4,6 +4,7 @@
 BIN_FOLDER=/usr/local/sbin
 ONIONDAO_PATH="$HOME/.oniondao"
 DOCKER_COMPOSE_PATH="$ONIONDAO_PATH/docker-composition"
+DOCKER_GUID=1000
 
 # Make oniondao path in case tornode is installed without top level oniondao
 mkdir -p "$ONIONDAO_PATH"
@@ -251,7 +252,7 @@ services:
 # Add docker-compose declarations for each node
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
 
-  echo "Making daemon $i"
+  echo "Configuring daemon $i"
 
   # Make tor data folder to mount
   data_folder_path="$DOCKER_COMPOSE_PATH/tor-data-$i"
@@ -268,18 +269,14 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   # Add docker-compose declarations
   echo -e "
   tor_daemon_$i:
-    image: ilshidur/tor-relay
+    image: actuallymentor/alpine-tor-relay
     container_name: tor_daemon_$i
     restart: unless-stopped
     ports:
       - "900$i:900$i"
       - "905$i:905$i"
-    environment:
-      - TZ=Europe/London
-      - PUID=1000
-      - PGID=1000
     volumes:
-      - $data_folder_path:/data
+      - $data_folder_path:/var/lib/tor
       - $torrc_file_path:/etc/tor/torrc:ro
   " >> "$DOCKER_COMPOSE_PATH/docker-compose.yml"
 
