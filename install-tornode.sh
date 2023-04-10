@@ -309,13 +309,13 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
     ControlPort 905$i
   " >> $torrc_file_path
 
-  if [ ! -z "$IPV6_ADDRESS" ];then
-    echo -e "
-      # Ipv6
-      IPv6Exit 1
-      ORPort [$IPV6_ADDRESS]:900$i
-    " >> $torrc_file_path
-  fi
+  # if [ ! -z "$IPV6_ADDRESS" ];then
+  #   echo -e "
+  #     # Ipv6
+  #     IPv6Exit 1
+  #     ORPort [$IPV6_ADDRESS]:900$i
+  #   " >> $torrc_file_path
+  # fi
 
   # Trim whitespace
   sed -ir 's/\s+//g' $torrc_file_path
