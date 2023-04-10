@@ -267,7 +267,7 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   fi
 
   # Add docker-compose declarations
-  DOCKER_IMAGE=osminogin/tor-simple
+  DOCKER_IMAGE=actuallymentor/alpine-tor-relay
   docker pull $DOCKER_IMAGE &> /dev/null
   echo -e "
   tor_daemon_$i:
