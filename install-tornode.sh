@@ -304,17 +304,16 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
     Nickname $NODE_NICKNAME
     ContactInfo $OPERATOR_EMAIL
     ORPort 900$i
-    DirPort 905$i
-    ControlPort 903$i
+
   " >> $torrc_file_path
 
-  # if [ ! -z "$IPV6_ADDRESS" ];then
-  #   echo -e "
-  #     # Ipv6
-  #     IPv6Exit 1
-  #     ORPort [$IPV6_ADDRESS]:900$i
-  #   " >> $torrc_file_path
-  # fi
+  if [ ! -z "$IPV6_ADDRESS" ];then
+    echo -e "
+      # Ipv6
+      IPv6Exit 1
+      ORPort [$IPV6_ADDRESS]:900$i
+    " >> $torrc_file_path
+  fi
 
   # Trim whitespace
   sed -ir 's/\s+//g' $torrc_file_path
