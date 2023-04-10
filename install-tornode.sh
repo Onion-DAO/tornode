@@ -257,7 +257,6 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   # Make tor data folder to mount
   data_folder_path="$DOCKER_COMPOSE_PATH/tor-data-$i"
   torrc_file_path="$DOCKER_COMPOSE_PATH/torrc$i"
-  mkdir -p $data_folder_path
 
   # Nickname of this daemon
   if [ "$DAEMON_AMOUNT" -eq "1" ]; then
@@ -326,6 +325,9 @@ done
 ## Restore and back up keys
 ## ###############
 
+# Start all containers
+docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d &> /dev/null
+
 # Restoring backed up keys if they exist
 echo "Restoring Tor keys"
 for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
@@ -338,9 +340,6 @@ for ((i=1;i<=$DAEMON_AMOUNT;++i)); do
   fi
 
 done
-
-# Start all containers
-docker compose -f "$DOCKER_COMPOSE_PATH/docker-compose.yml" up -d &> /dev/null
 
 # Back up keys
 echo "Backing up Tor keys"
