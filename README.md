@@ -1,12 +1,14 @@
 # 🧅 OnionDAO Tornode
 
-This is an initiative by the [OnionDAO]( https://oniondao.web.app/).
+This is an initiative by the [OnionDAO](https://oniondao.web.app/).
 
 To qualify for your POAP you need to:
 
 1. Set up an exit node (see setup script below)
 1. Keep your node running for at least one month
-1. Claim your POAP at poap.delivery
+1. Claim your POAP at [poap.delivery](https://poap.delivery/)
+
+Direct link to the POAP for: [April](https://poap.delivery/oniondao-tor-node-runner-april-2022), [May](https://poap.delivery/oniondao-tor-node-runner-may-2022), [June](https://poap.delivery/oniondao-tor-node-runner-june-2022), [July](https://poap.delivery/oniondao-tor-node-runner-july-2022) 2022
 
 ---
 
