@@ -85,6 +85,32 @@ jobs:
         if: failure()
         run: sudo oniondao debug || sudo tail -n 80 /var/log/oniondao.log
 
+  interactive:
+    name: interactive curl | sudo bash on ${{ matrix.runner }}
+    needs: shellcheck
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ ubuntu-24.04, ubuntu-26.04 ]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Answer every prompt like a person
+        env:
+          ONIONDAO_REPO: ${{ github.workspace }}
+        run: |
+          sudo apt-get install -y -qq expect > /dev/null
+          python3 test/mock-oracle.py 8099 &
+          # Only test plumbing goes through the environment, every setting is answered at a prompt
+          expect test/interactive-install.exp "cat setup.sh | sudo --preserve-env=ONIONDAO_REPO,ONIONDAO_TORRC_EXTRA,ONIONDAO_ORACLE_URL bash"
+          jq -e '.wallet == "mentor.eth" and .node_nickname == "oniondaoci"' /tmp/oracle-request.json
+
+      - name: Diagnostics
+        if: failure()
+        run: sudo oniondao debug || sudo tail -n 80 /var/log/oniondao.log
+
   debian:
     name: debian-${{ matrix.debian }} on ${{ matrix.runner }}
     needs: shellcheck
