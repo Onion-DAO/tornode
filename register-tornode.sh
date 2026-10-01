@@ -56,7 +56,7 @@ main() {
 		if ! { valid_wallet "$WALLET" && confirm "Keep $WALLET as your wallet?" Y; }; then
 			prompt_field WALLET "Your wallet address or ENS name" valid_wallet
 		fi
-		[[ "$WALLET" == *.eth ]] && WALLET=${WALLET,,}
+		[[ "${WALLET,,}" == *.eth ]] && WALLET=${WALLET,,}
 		prompt_field TWITTER "Twitter/X handle without @ (optional)" valid_twitter
 		valid_email "$EMAIL" || prompt_field EMAIL "Operator email" valid_email
 		valid_nickname "$NICKNAME" || prompt_field NICKNAME "Node nickname" valid_nickname
