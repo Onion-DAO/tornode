@@ -232,8 +232,10 @@ preflight() {
 
 }
 
+# Automatic updates only run on installed nodes, they never stop on a release the node already runs on
 release_accepted() {
-	[ "$FORCE" = yes ] || [ "${ONIONDAO_ACCEPTED_RELEASE:-}" = "$OS_CODENAME" ] || [ "$( conf_get ACCEPTED_RELEASE )" = "$OS_CODENAME" ]
+	[ "$FORCE" = yes ] || [ "$AUTO" = yes ] \
+		|| [ "${ONIONDAO_ACCEPTED_RELEASE:-}" = "$OS_CODENAME" ] || [ "$( conf_get ACCEPTED_RELEASE )" = "$OS_CODENAME" ]
 }
 
 unsupported_release_help() {
