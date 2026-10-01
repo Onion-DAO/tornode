@@ -26,7 +26,8 @@ install_tor_packages() {
 	apt_get update
 
 	local packages=( tor deb.torproject.org-keyring nyx jq unattended-upgrades )
-	[ "$UNBOUND" = yes ] && packages+=( unbound )
+	# dns-root-data is only a Recommends of unbound, but DNSSEC validation fails without it
+	[ "$UNBOUND" = yes ] && packages+=( unbound dns-root-data )
 	info "Installing ${packages[*]}..."
 	apt_get install "${packages[@]}"
 
@@ -87,6 +88,13 @@ clean_legacy_system() {
 	if command -v apt-key > /dev/null && apt-key list 2> /dev/null | tr -d ' ' | grep -q "$TOR_KEY_FINGERPRINT"; then
 		apt-key del "$TOR_KEY_FINGERPRINT" > /dev/null 2>&1 || true
 		ok "Removed old apt-key trust for the Tor Project"
+	fi
+
+	# Old versions installed a system-wide "never install recommended packages" rule
+	local norecommends=/etc/apt/apt.conf.d/40norecommends
+	if [ -f "$norecommends" ] && [ "$( tr -d '[:space:]' < "$norecommends" )" = 'APT{Install-Recommends"false";Install-Suggests"false";};' ]; then
+		rm -f "$norecommends"
+		ok "Removed the old system-wide no-recommends apt rule"
 	fi
 
 	# Old versions replaced the distro's unattended-upgrades config. It is ucf-managed, so restore it through ucf.
@@ -174,7 +182,13 @@ configure_tor() {
 	[ -n "${ONIONDAO_TORRC_EXTRA:-}" ] && printf '%s\n' "$ONIONDAO_TORRC_EXTRA" > "$TORRC_DIR/50-oniondao-extra.conf"
 
 	if [ "$UNBOUND" = yes ]; then
-		systemctl enable --now unbound > /dev/null 2>&1 || die "unbound did not start, is port 53 taken? Rerun with --no-unbound to use the system resolver"
+		systemctl enable unbound > /dev/null 2>&1
+		systemctl restart unbound > /dev/null 2>&1 || true
+		sleep 3
+		if ! systemctl is-active --quiet unbound; then
+			journalctl -u unbound -n 10 --no-pager >&2 || true
+			die "The local unbound resolver did not start (is port 53 taken?). Rerun with --no-unbound to use the system resolver"
+		fi
 		echo "nameserver 127.0.0.1" > "$TOR_RESOLV"
 	else
 		rm -f "$TOR_RESOLV"
