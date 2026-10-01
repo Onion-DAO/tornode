@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2] - 2026-10-01
+
+### Fixed
+- a failed Tor change now restores every file Tor reads, not only torrc
+- automatic updates retry a commit whose install did not finish
+- migrating a checkout owned by another user no longer shares git objects with it
+- existing exits using /etc/tor/tor-exit-notice.html are no longer mistaken for old OnionDAO installs
+
 ## [1.0.1] - 2026-10-01
 
 ### Fixed

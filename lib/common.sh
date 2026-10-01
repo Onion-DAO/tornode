@@ -8,7 +8,7 @@ set -Eeuo pipefail
 ## Constants
 ## ###############
 
-ONIONDAO_VERSION="1.0.1"
+ONIONDAO_VERSION="1.0.2"
 ONIONDAO_DIR=/opt/oniondao
 ONIONDAO_BIN=/usr/local/sbin/oniondao
 CONF_DIR=/etc/oniondao
@@ -324,7 +324,9 @@ relocate_to_checkout() {
 		local origin branch
 		origin=$( git -c safe.directory='*' -C "$self_dir" remote get-url origin )
 		branch=$( git -c safe.directory='*' -C "$self_dir" symbolic-ref --quiet --short HEAD || echo main )
-		git -c safe.directory='*' clone --quiet "$self_dir" "$ONIONDAO_DIR"
+		# Copy objects instead of hardlinking them, root must own everything it will execute later
+		git -c safe.directory='*' clone --quiet --no-hardlinks "$self_dir" "$ONIONDAO_DIR"
+		chown -R root:root "$ONIONDAO_DIR"
 		git -C "$ONIONDAO_DIR" remote set-url origin "$origin"
 		git -C "$ONIONDAO_DIR" checkout --quiet -B "$branch"
 

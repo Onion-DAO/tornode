@@ -73,6 +73,12 @@ jobs:
             EXPECT_AUTO_UPDATE=${{ contains(matrix.flags, '--no-auto-update') && 'no' || 'yes' }} \
             test/verify.sh
 
+      - name: A rejected Tor option rolls everything back
+        run: |
+          if sudo ONIONDAO_TORRC_EXTRA="NotARealTorOption 1" oniondao install --yes --no-register; then echo "install should have failed"; exit 1; fi
+          sudo grep -qx 'PublishServerDescriptor 0' /etc/tor/torrc.d/50-oniondao-extra.conf
+          systemctl is-active --quiet tor@default
+
       - name: Update is idempotent
         run: |
           sudo oniondao update --yes --no-register

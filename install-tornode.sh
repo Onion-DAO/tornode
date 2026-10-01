@@ -18,8 +18,8 @@ confirm_foreign_tor() {
 	[ -f "$TORRC" ] && [ ! -f "$CONF_FILE" ] || return 0
 	grep -q 'Managed by OnionDAO' "$TORRC" && return 0
 
-	# Pre-1.0 OnionDAO installs had no header but always served this notice
-	grep -q "DirPortFrontPage $EXIT_NOTICE" "$TORRC" && return 0
+	# Pre-1.0 OnionDAO installs had no header but always put the wallet comment in the notice
+	grep -qP '<!-- Onion ?DAO address: ' "$EXIT_NOTICE" 2> /dev/null && return 0
 
 	warn "This server already runs Tor with its own configuration ($TORRC)."
 	echo "OnionDAO replaces it with an exit relay setup and keeps a backup at $TORRC.oniondao-backup."
@@ -57,6 +57,9 @@ main() {
 	configure_autoupdate
 	remove_legacy_checkouts
 	wait_for_tor
+
+	# Automatic updates retry until this matches the checkout
+	conf_set APPLIED_COMMIT "$( git_od rev-parse HEAD )"
 
 	[ "$REGISTER" = yes ] && register_node
 	if [ "$AUTO" = yes ]; then ok "OnionDAO update applied"; else finish; fi
