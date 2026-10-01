@@ -166,6 +166,7 @@ require_root() {
 take_lock() {
 
 	[ "${ONIONDAO_LOCKED:-}" = 1 ] && return 0
+	mkdir -p "${LOCK_FILE%/*}"
 	exec 9> "$LOCK_FILE"
 
 	if ! flock -n 9; then

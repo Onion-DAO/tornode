@@ -41,7 +41,10 @@ check "repository uses deb822 + signed-by" grep -q 'Signed-By: /usr/share/keyrin
 check "tor@default is active" systemctl is-active --quiet tor@default
 check "torrc is valid" tor --defaults-torrc /usr/share/tor/tor-service-defaults-torrc -f /etc/tor/torrc --verify-config
 check "ORPort 9001 on IPv4" bash -c "ss -ltnH 'sport = :9001' | grep -q '0.0.0.0:9001'"
-check "ORPort 9001 on IPv6" bash -c "ss -ltnH 'sport = :9001' | grep -q '\[::\]:9001'"
+# CI runners and containers often run without IPv6
+if [ -s /proc/net/if_inet6 ]; then
+	check "ORPort 9001 on IPv6" bash -c "ss -ltnH 'sport = :9001' | grep -q '\[::\]:9001'"
+fi
 check "exit notice served on port 80" curl -fsS --max-time 5 http://127.0.0.1/
 check "exit notice names $EXPECT_WALLET" bash -c "curl -fsS --max-time 5 http://127.0.0.1/ | grep -qF '<!-- OnionDAO address: $EXPECT_WALLET -->'"
 check "exit notice has no FIXME_ placeholders" bash -c "! curl -fsS --max-time 5 http://127.0.0.1/ | grep -q 'FIXME_'"

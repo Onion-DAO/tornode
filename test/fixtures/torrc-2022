@@ -1,0 +1,18 @@
+  SocksPort 0
+  RunAsDaemon 1
+  ORPort 9001
+  Nickname oniondaolegacy
+  ContactInfo temporaty-test@palokaj.co
+  Log notice file /var/log/tor/notices.log
+  DirPort 80
+  DirPortFrontPage /etc/tor/tor-exit-notice.html
+  ExitPolicy accept *:443       # HTTPS
+  ExitPolicy reject *:*
+  ExitRelay 1
+  IPv6Exit 1
+  AccountingStart month 1 00:00
+  AccountingMax 2 TB
+  DisableDebuggerAttachment 0
+  ControlPort 9051
+  CookieAuthentication 1
+  PublishServerDescriptor 0

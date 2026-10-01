@@ -1,0 +1,10 @@
+# Debian with systemd as PID 1, so tor@default and the update timer behave like on a real server
+ARG DEBIAN=13
+FROM debian:${DEBIAN}
+RUN apt-get update \
+	&& DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+		systemd systemd-sysv dbus ca-certificates curl git iproute2 procps dnsutils python3 \
+	&& rm -rf /var/lib/apt/lists/* \
+	&& systemctl mask getty.target console-getty.service systemd-logind.service
+STOPSIGNAL SIGRTMIN+3
+CMD [ "/lib/systemd/systemd" ]

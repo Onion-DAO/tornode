@@ -1,0 +1,180 @@
+name: Test installer
+
+# Every change installs a real exit relay on each supported distro and architecture.
+# Relays never join the Tor network (PublishServerDescriptor 0) and register with a local mock oracle.
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  ONIONDAO_EMAIL: temporaty-test@palokaj.co
+  ONIONDAO_WALLET: mentor.eth
+  ONIONDAO_NICKNAME: oniondaoci
+  ONIONDAO_TORRC_EXTRA: PublishServerDescriptor 0
+  ONIONDAO_ORACLE_URL: http://127.0.0.1:8099/api/tor_nodes
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - run: shellcheck -x *.sh lib/*.sh test/*.sh
+
+  ubuntu:
+    name: ${{ matrix.runner }} (${{ matrix.policy }}${{ matrix.flags && ' ' || '' }}${{ matrix.flags }})
+    needs: shellcheck
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-24.04, policy: reduced }
+          - { runner: ubuntu-24.04-arm, policy: reduced }
+          - { runner: ubuntu-26.04, policy: reduced }
+          - { runner: ubuntu-26.04-arm, policy: web, flags: --no-unbound --no-auto-update }
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Start mock oracle
+        run: python3 test/mock-oracle.py 8099 &
+
+      - name: Install like a user (curl | sudo bash -s -- --yes)
+        env:
+          ONIONDAO_REPO: ${{ github.workspace }}
+          ONIONDAO_EXIT_POLICY: ${{ matrix.policy }}
+        run: |
+          keep=$( env | grep -o '^ONIONDAO_[A-Z_]*' | paste -sd, )
+          cat setup.sh | sudo --preserve-env="$keep" bash -s -- --yes ${{ matrix.flags }}
+
+      - name: Oracle received the registration
+        run: jq -e '.wallet == "mentor.eth" and .node_nickname == "oniondaoci"' /tmp/oracle-request.json
+
+      - name: Verify node
+        run: |
+          sudo apt-get install -y -qq dnsutils > /dev/null
+          sudo EXPECT_POLICY=${{ matrix.policy }} \
+            EXPECT_UNBOUND=${{ contains(matrix.flags, '--no-unbound') && 'no' || 'yes' }} \
+            EXPECT_AUTO_UPDATE=${{ contains(matrix.flags, '--no-auto-update') && 'no' || 'yes' }} \
+            test/verify.sh
+
+      - name: Update is idempotent
+        run: |
+          sudo oniondao update --yes --no-register
+          sudo EXPECT_POLICY=${{ matrix.policy }} \
+            EXPECT_UNBOUND=${{ contains(matrix.flags, '--no-unbound') && 'no' || 'yes' }} \
+            EXPECT_AUTO_UPDATE=${{ contains(matrix.flags, '--no-auto-update') && 'no' || 'yes' }} \
+            test/verify.sh
+
+      - name: Diagnostics
+        if: failure()
+        run: sudo oniondao debug || sudo tail -n 80 /var/log/oniondao.log
+
+  debian:
+    name: debian-${{ matrix.debian }} on ${{ matrix.runner }}
+    needs: shellcheck
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        debian: [ 12, 13 ]
+        runner: [ ubuntu-24.04, ubuntu-24.04-arm ]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Boot Debian ${{ matrix.debian }} with systemd
+        run: |
+          docker build -q -t node --build-arg DEBIAN=${{ matrix.debian }} -f test/Dockerfile.debian test
+          docker run -d --name node --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
+            --tmpfs /run --tmpfs /run/lock -v "$GITHUB_WORKSPACE:/src:ro" node
+          for i in $(seq 1 30); do docker exec node systemctl is-system-running 2>/dev/null | grep -qE 'running|degraded' && break; sleep 2; done
+          docker exec node bash -c 'cp -r /src /root/src && chown -R root:root /root/src'
+
+      - name: Install like a user
+        run: |
+          docker exec -d node python3 /root/src/test/mock-oracle.py 8099
+          docker exec $(env | grep -o '^ONIONDAO_[A-Z_]*' | sed 's/^/-e /') -e ONIONDAO_REPO=/root/src node bash /root/src/setup.sh --yes
+
+      - name: Verify node
+        run: |
+          docker exec node jq -e '.wallet == "mentor.eth"' /tmp/oracle-request.json
+          docker exec node /root/src/test/verify.sh
+
+      - name: Diagnostics
+        if: failure()
+        run: docker exec node oniondao debug || docker exec node tail -n 80 /var/log/oniondao.log
+
+  legacy:
+    name: upgrade a 2022 node with the old CLI
+    needs: shellcheck
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Seed a 2022 install
+        run: |
+          git update-ref refs/heads/main HEAD
+          sudo git config --global --add safe.directory '*'
+          sudo test/seed-legacy.sh
+
+      - name: Run the 2022 `oniondao update`, answering its prompts
+        run: |
+          sudo apt-get install -y -qq expect > /dev/null
+          python3 test/mock-oracle.py 8099 &
+          # The old CLI re-runs sudo, keep the test oracle across it
+          echo 'Defaults env_keep += "ONIONDAO_ORACLE_URL"' | sudo tee /etc/sudoers.d/oniondao-test > /dev/null
+          sudo --preserve-env=ONIONDAO_ORACLE_URL HOME=/root expect test/legacy-update.exp
+
+      - name: Settings came from the 2022 install
+        run: |
+          sudo grep -qx 'NICKNAME=oniondaolegacy' /etc/oniondao/oniondao.conf
+          sudo grep -qx 'BANDWIDTH_TB=2' /etc/oniondao/oniondao.conf
+          sudo grep -qx 'EXIT_POLICY=web' /etc/oniondao/oniondao.conf
+          jq -e '.wallet == "mentor.eth" and .bandwidth == "2"' /tmp/oracle-request.json
+          test ! -e /etc/apt/apt.conf.d/40norecommends
+
+      - name: Verify node
+        run: |
+          sudo apt-get install -y -qq dnsutils > /dev/null
+          sudo EXPECT_POLICY=web test/verify.sh
+
+      - name: Diagnostics
+        if: failure()
+        run: sudo oniondao debug || sudo tail -n 80 /var/log/oniondao.log
+
+  unsupported:
+    name: focal is refused without changes
+    needs: shellcheck
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run the installer on Ubuntu 20.04
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/src:ro" ubuntu:20.04 bash -c '
+            apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git curl ca-certificates > /dev/null
+            before=$( ls -la /etc /opt | sha256sum )
+            if bash /src/install-tornode.sh --yes > /tmp/out 2>&1; then echo "installer should have failed"; exit 1; fi
+            cat /tmp/out
+            grep -q "is not supported" /tmp/out
+            [ "$before" = "$( ls -la /etc /opt | sha256sum )" ] || { echo "system was changed"; exit 1; }
+          '

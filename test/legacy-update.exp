@@ -1,0 +1,14 @@
+#!/usr/bin/expect -f
+# An operator with a 2022 install runs the OLD `oniondao update` and answers its prompts.
+# Run as root with HOME=/root, after test/seed-legacy.sh
+set timeout 300
+proc fail {msg} { puts "\nEXPECT: $msg"; exit 1 }
+spawn /usr/local/sbin/oniondao update
+expect -ex {Keep this configuration? [Y/n]}           { send "\r" } timeout { fail "no keep-config prompt" }
+set timeout 900
+expect -ex {Enable automatic OnionDAO updates? [Y/n]} { send "\r" } timeout { fail "no auto-update offer" }
+expect {
+  -ex {Your OnionDAO Tor exit node is set up.} { puts "\nEXPECT: LEGACY UPDATE OK"; exit 0 }
+  -ex "✖" { fail "LEGACY UPDATE FAILED" }
+  timeout { fail "TIMEOUT" }
+}
