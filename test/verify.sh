@@ -32,7 +32,13 @@ tor_getinfo() {
 	exec 3>&-
 }
 
-policy=$( tor_getinfo exit-policy/full | tr ',' '\n' )
+# Tor answers exit-policy/full once it has built its own descriptor, which takes a moment after a restart
+for _ in $( seq 1 18 ); do
+	policy=$( tor_getinfo exit-policy/full | tr ',' '\n' )
+	grep -q 'reject' <<< "$policy" && break
+	sleep 5
+done
+grep -q 'reject' <<< "$policy" || echo "Tor did not return an exit policy: $( tor_getinfo exit-policy/full | head -c 300 )"
 
 echo "== Tor"
 check "tor is 0.4.9 or newer" dpkg --compare-versions "$( dpkg-query -W -f '${Version}' tor )" ge 0.4.9
