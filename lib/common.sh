@@ -306,11 +306,12 @@ relocate_to_checkout() {
 
 		info "Moving OnionDAO to $ONIONDAO_DIR"
 
-		# Clone the exact code that is running, then point it at the real remote
+		# Clone the exact code that is running, then point it at the real remote.
+		# Old checkouts may belong to the user who ran the old CLI, hence safe.directory.
 		local origin branch
-		origin=$( git -C "$self_dir" remote get-url origin )
-		branch=$( git -C "$self_dir" symbolic-ref --quiet --short HEAD || echo main )
-		git clone --quiet "$self_dir" "$ONIONDAO_DIR"
+		origin=$( git -c safe.directory='*' -C "$self_dir" remote get-url origin )
+		branch=$( git -c safe.directory='*' -C "$self_dir" symbolic-ref --quiet --short HEAD || echo main )
+		git -c safe.directory='*' clone --quiet "$self_dir" "$ONIONDAO_DIR"
 		git -C "$ONIONDAO_DIR" remote set-url origin "$origin"
 		git -C "$ONIONDAO_DIR" checkout --quiet -B "$branch"
 
