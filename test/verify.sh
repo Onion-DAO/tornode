@@ -38,7 +38,6 @@ for _ in $( seq 1 18 ); do
 	grep -q 'reject' <<< "$policy" && break
 	sleep 5
 done
-grep -q 'reject' <<< "$policy" || echo "Tor did not return an exit policy: $( tor_getinfo exit-policy/full | head -c 300 )"
 
 echo "== Tor"
 check "tor is 0.4.9 or newer" dpkg --compare-versions "$( dpkg-query -W -f '${Version}' tor )" ge 0.4.9
@@ -56,14 +55,29 @@ check "exit notice names $EXPECT_WALLET" bash -c "curl -fsS --max-time 5 http://
 check "exit notice has no FIXME_ placeholders" bash -c "! curl -fsS --max-time 5 http://127.0.0.1/ | grep -q 'FIXME_'"
 
 echo "== Exit policy ($EXPECT_POLICY)"
-check "policy rejects SMTP (25) on IPv4" bash -c "grep -q 'reject \*:25\b\|reject \*:\*' <<< '$policy'"
-check "policy accepts HTTPS (443) on IPv4" bash -c "grep -q 'accept \*:443' <<< '$policy'"
-check "policy accepts HTTPS (443) on IPv6" bash -c "grep -q 'accept6 \*:443' <<< '$policy'"
-if [ "$EXPECT_POLICY" = reduced ]; then
-	check "reduced policy accepts SSH (22)" bash -c "grep -q 'accept \*:20-23' <<< '$policy'"
+if grep -q 'reject' <<< "$policy"; then
+
+	# The effective policy, as Tor applies it
+	check "policy rejects SMTP (25) on IPv4" bash -c "grep -q 'reject \*:25\b\|reject \*:\*' <<< '$policy'"
+	check "policy accepts HTTPS (443) on IPv4" bash -c "grep -q 'accept \*:443' <<< '$policy'"
+	check "policy accepts HTTPS (443) on IPv6" bash -c "grep -q 'accept6 \*:443' <<< '$policy'"
+	if [ "$EXPECT_POLICY" = reduced ]; then
+		check "reduced policy accepts SSH (22)" bash -c "grep -q 'accept \*:20-23' <<< '$policy'"
+	else
+		check "web policy does not accept SSH (22)" bash -c "! grep -q 'accept \*:2[0-2]' <<< '$policy'"
+		check "web policy ends with reject *:*" bash -c "grep -q 'reject \*:\*' <<< '$policy'"
+	fi
+
 else
-	check "web policy does not accept SSH (22)" bash -c "! grep -q 'accept \*:2[0-2]' <<< '$policy'"
-	check "web policy ends with reject *:*" bash -c "grep -q 'reject \*:\*' <<< '$policy'"
+
+	# Without a public address on an interface (CI runners, containers) Tor builds no descriptor, check the config
+	echo "• Tor has no descriptor on this machine, checking the configured policy instead"
+	if [ "$EXPECT_POLICY" = reduced ]; then
+		check "torrc uses ReducedExitPolicy" grep -qx 'ReducedExitPolicy 1' /etc/tor/torrc
+	else
+		check "torrc accepts only 53, 80, 443" bash -c "[ \"\$( grep '^ExitPolicy' /etc/tor/torrc | tr '\n' '|' )\" = 'ExitPolicy accept *:53|ExitPolicy accept *:80|ExitPolicy accept *:443|ExitPolicy reject *:*|' ]"
+	fi
+
 fi
 
 echo "== DNS"
