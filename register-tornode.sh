@@ -1,244 +1,81 @@
 #!/bin/bash
+# Registers this Tor exit relay with the OnionDAO oracle, also for exits that were set up without OnionDAO.
+# Run through `oniondao register`. See --help for options.
 
-PARENT_HOME=$1
-PARENT_HOME=${PARENT_HOME:-$HOME}
+SELF_DIR=$( dirname "$( readlink -f "${BASH_SOURCE[0]}" )" )
+# shellcheck source=lib/common.sh
+source "$SELF_DIR/lib/common.sh"
+# shellcheck source=lib/tor.sh
+source "$SELF_DIR/lib/tor.sh"
+# shellcheck source=lib/register.sh
+source "$SELF_DIR/lib/register.sh"
 
-# Global config
-BIN_FOLDER=/usr/local/sbin
-ONIONDAO_PATH="$PARENT_HOME/.oniondao/"
+# The oracle reads the wallet from the page Tor serves on port 80
+publish_wallet() {
 
-## ###############
-## Force latest version
-## ###############
-cd "$ONIONDAO_PATH"
-git pull &> /dev/null
-sudo cp $ONIONDAO_PATH/oniondao.sh $BIN_FOLDER/oniondao
-sudo chmod 755 $BIN_FOLDER/oniondao
-sudo chmod u+x $BIN_FOLDER/oniondao
+	if grep -q 'Managed by OnionDAO' "$TORRC" 2> /dev/null; then
+		write_exit_notice
+	else
 
-## ###############
-## Tor POAP config
-## ###############
+		local page tmp
+		page=$( grep -m1 -oP '^\s*DirPortFrontPage\s+\K\S+' "$TORRC" 2> /dev/null || true )
+		[[ -n "$page" && -f "$page" ]] || die "Registration needs Tor to serve an exit notice on port 80 (DirPort 80 + DirPortFrontPage in $TORRC). Run: sudo oniondao install"
 
-cat << "EOF"
+		tmp=$( mktemp )
+		grep -vP '<!-- Onion ?DAO address: ' "$page" > "$tmp" || true
+		echo "<!-- OnionDAO address: $WALLET -->" >> "$tmp"
+		install -m 644 "$tmp" "$page"
+		rm -f "$tmp"
 
-==========================================================
+	fi
 
-__   __ _  __  __   __ _    ____   __    __   ____ 
- /  \ (  ( \(  )/  \ (  ( \  (  _ \ /  \  / _\ (  _ \
-(  O )/    / )((  O )/    /   ) __/(  O )/    \ ) __/
- \__/ \_)__)(__)\__/ \_)__)  (__)   \__/ \_/\_/(__)
+	systemctl reload tor@default
+	ok "Exit notice now names $WALLET"
 
-
-==========================================================
-
-Onion POAP is an Onion DAO initiative that hands out POAP tokens to people who run a Tor exit node.
-
-This is a setup script that will install a Tor exit node & register that node with Tor POAP.
-
-⚠️  Disclaimer: Tor POAP is *NOT* associated with the Tor project. To learn about the Tor project, go to: https://www.torproject.org/.
-
-⚠️  Disclaimer: Tor POAP is *NOT* associated with POAP. To learn more about POAP, go to https://poap.xyz/.
-
-🚨  IMPORTANT NOTICE: running a Tor exit node is legal in most places, but please check your local rules. For legal resources, refer to https://community.torproject.org/relay/community-resources/
-
-Credits:
-
-Setup script based on https://tor-relay.co/
-Code by mentor.eth
-
-
-Press any key to continue...
-
-EOF
-
-read
-
-## ###############
-## The below script is based
-## on https://tor-relay.co/
-## edits marked with 🔥
-## ###############
-
-
-RELEASE='focal'
-IS_EXIT=true
-IS_BRIDGE=false
-INSTALL_NYX=true
-CHECK_IPV6=true
-ENABLE_AUTO_UPDATE=true
-OBFS4PORT_LT_1024=true
-
-C_RED="\e[31m"
-C_GREEN="\e[32m"
-C_CYAN="\e[36m"
-C_DEFAULT="\e[39m"
-
-function echoInfo() {
-  echo -e "${C_CYAN}$1${C_DEFAULT}"
 }
 
-function echoError() {
-  echo -e "${C_RED}$1${C_DEFAULT}"
+main() {
+
+	parse_flags "$@"
+	require_root
+	take_lock
+	echo "=== oniondao register $( date -Is ) ===" >> "$LOG_FILE"
+
+	preflight
+	relocate_to_checkout "$SELF_DIR" register-tornode.sh "$@"
+
+	[ "$YES" = yes ] || banner
+	command -v jq > /dev/null || apt_get install jq
+	load_settings
+	EXIT_POLICY=${EXIT_POLICY:-reduced} BANDWIDTH_TB=${BANDWIDTH_TB:-1}
+
+	# Tor settings come from torrc or the config, only the OnionDAO details are asked
+	if [ "$YES" = no ]; then
+		heading "OnionDAO needs some information"
+		echo "Node nickname, email and bandwidth come from $TORRC, edit them there (or run: sudo oniondao install)."
+		if ! { valid_wallet "$WALLET" && confirm "Keep $WALLET as your wallet?" Y; }; then
+			prompt_field WALLET "Your wallet address or ENS name" valid_wallet
+		fi
+		[[ "$WALLET" == *.eth ]] && WALLET=${WALLET,,}
+		prompt_field TWITTER "Twitter/X handle without @ (optional)" valid_twitter
+		valid_email "$EMAIL" || prompt_field EMAIL "Operator email" valid_email
+		valid_nickname "$NICKNAME" || prompt_field NICKNAME "Node nickname" valid_nickname
+	fi
+	collect_settings_check
+
+	publish_wallet
+	[ -f "$CONF_FILE" ] && save_settings
+	wait_for_tor
+	register_node
+
 }
 
-function echoSuccess() {
-  echo -e "${C_GREEN}$1${C_DEFAULT}"
+# Same rules as an install, without asking again
+collect_settings_check() {
+	local yes=$YES
+	YES=yes
+	collect_settings
+	YES=$yes
 }
 
-function handleError() {
-  echoError "-> ERROR"
-  sudo /etc/init.d/tor stop
-  echoError "An error occured on the last setup step."
-  echoError "If you think there is a problem with this script please share information about the error and you system configuration for debugging: tor@flxn.de"
-}
-
-## ###############
-## Get needed data
-## ###############
-
-## ###############
-## CHeck for old data
-## ###############
-if test -f /etc/tor/torrc; then
-  NODE_NICKNAME=$( grep -Po "(?<=Nickname )(.*)" /etc/tor/torrc 2> /dev/null )
-  NODE_BANDWIDTH=$( grep -Po "(?<=AccountingMax )(.*)(?= TB)" /etc/tor/torrc 2> /dev/null )
-  OPERATOR_EMAIL=$( grep -Po "(?<=ContactInfo )(.*)" /etc/tor/torrc 2> /dev/null )
-  OPERATOR_WALLET=$( grep -Po "(?<= address: )(.*)(?= -->)" /etc/tor/tor-exit-notice.html 2> /dev/null )
-  OPERATOR_TWITTER=$( grep -Po "(?<=OPERATOR_TWITTER=)(.*)" "$ONIONDAO_PATH/.oniondaorc" 2> /dev/null )
-  REDUCED_EXIT_POLICY=$( grep -Po "(?<=REDUCED_EXIT_POLICY=)(.*)" "$ONIONDAO_PATH/.oniondaorc" 2> /dev/null )
-fi
-
-echoInfo "\n\n----------------------------------------"
-echoInfo "OnionDAO needs some information"
-echoInfo "----------------------------------------\n\n"
-
-echoError "NOTE: details such as Node nickname, operator email etc are obtained from /etc/tor/torrc, you may edit them there."
-
-
-# Operator email
-if [ "$OPERATOR_WALLET" ]; then
-
-  read -p "Keep $OPERATOR_WALLET as your node wallet to receive POAPs? [Y/n] " KEEP_OPERATOR_WALLET
-  if [ "${KEEP_OPERATOR_WALLET,,}" = "n" ]; then
-    read -p "Your wallet address or ENS (to receive POAP): " OPERATOR_WALLET
-
-    # Remove old address and add new one
-    sed -i 's/<!-- Onion.*$//g' /etc/tor/tor-exit-notice.html
-    echo "<!-- Onion DAO address: $OPERATOR_WALLET -->" >> /etc/tor/tor-exit-notice.html
-
-    echoInfo "Reloading Tor config..."
-    sudo /etc/init.d/tor restart
-
-    # 🔥 wait for tor to come online 
-    # keep the user entertained with status updates
-    echo "Waiting for Tor to come online, just a moment..."
-    echo "This can take a few minutes. DO NOT EXIT THIS SCRIPT."
-
-    PROGRESS="#"
-    until curl "http://127.0.0.1" &> /dev/null; do
-      echo -en "\e[K$PROGRESS"
-      RANDOM_BETWEEN_1_AND_5=$(( ( RANDOM % 5 )  + 1 ))
-      PROGRESS="$PROGRESS#"
-      sleep "$RANDOM_BETWEEN_1_AND_5"
-    done
-
-  fi
-
-else
-
-  read -p "Your wallet address or ENS (to receive POAP): " OPERATOR_WALLET
-  
-fi
-
-# Operator twitter
-if [ "$OPERATOR_TWITTER" ]; then
-
-  read -p "Keep $OPERATOR_TWITTER as your twitter handle? [Y/n] " KEEP_OPERATOR_TWITTER
-  if [ "${KEEP_OPERATOR_TWITTER,,}" = "n" ]; then
-    read -p "Your twitter handle (optional): " OPERATOR_TWITTER
-  fi
-
-else
-
-  read -p "Your twitter handle (optional): " OPERATOR_TWITTER
-  
-fi
-
-# Mark unknown values
-NODE_BANDWIDTH=${NODE_BANDWIDTH:-"unknown"}
-NODE_NICKNAME=${NODE_NICKNAME:-"unknown"}
-REDUCED_EXIT_POLICY=${REDUCED_EXIT_POLICY:-"unknown"}
-
-echoSuccess "\n\n----------------------------------------"
-echoSuccess "Check your information"
-echoSuccess "----------------------------------------"
-echoSuccess "POAP wallet: $OPERATOR_WALLET"
-echoSuccess "Node nickname: $NODE_NICKNAME"
-echoSuccess "Operator email: $OPERATOR_EMAIL"
-echoSuccess "Operator twitter: $OPERATOR_TWITTER"
-echoSuccess "Monthly bandwidth limit: $NODE_BANDWIDTH TB\n"
-echoInfo "Press any key to continue or ctrl+c to exit..."
-read
-
-
-
-echoInfo "------------------------------------------------------"
-echoInfo "Registering node with OnionDAO..."
-echoInfo "------------------------------------------------------\n"
-
-## ###############
-## Get remote IP
-## ###############
-
-# Get ipv4 of this server
-REMOTE_IP=$( curl ipv4.icanhazip.com 2> /dev/null )
-if [ ${#REMOTE_IP} -lt 7 ]; then
-  echo "Remote ip: icanhaz unavailable, using canhaz"
-  REMOTE_IP=$( curl ipv4.canhazip.com 2> /dev/null )
-elif [ ${#REMOTE_IP} -lt 7 ]; then
-  echo "Remote ip: canhaz unavailable, using ipify"
-  REMOTE_IP=$( curl api.ipify.org 2> /dev/null )
-elif [ ${#REMOTE_IP} -lt 7 ]; then
-  echo "Remote ip: ipify unavailable, using seeip"
-  REMOTE_IP=$( curl https://ip4.seeip.org 2> /dev/null )
-fi
-
-## ###############
-## Data sanitation
-## ###############
-
-# Save data that is not in different places
-echo "OPERATOR_TWITTER=$OPERATOR_TWITTER" > $ONIONDAO_PATH/.oniondaorc
-echo "REDUCED_EXIT_POLICY=$REDUCED_EXIT_POLICY" >> $ONIONDAO_PATH/.oniondaorc
-
-# Check for the (current) edge case that this is a ipv6-only server, assumption: if we could not find an ipv4, you are an ipv6
-if [ ${#REMOTE_IP} -lt 7 ]; then
-  echoInfo "Could not find an ipv4 address for your server, using ipv6"
-  REMOTE_IP="$IPV6_ADDRESS"
-fi
-
-# Formulate post data format
-post_data="{"
-post_data="$post_data\"ip\": \"$REMOTE_IP\""
-post_data="$post_data,\"email\": \"$OPERATOR_EMAIL\""
-post_data="$post_data,\"bandwidth\": \"$NODE_BANDWIDTH\""
-post_data="$post_data,\"reduced_exit_policy\": \"$REDUCED_EXIT_POLICY\""
-post_data="$post_data,\"node_nickname\": \"$NODE_NICKNAME\""
-post_data="$post_data,\"wallet\": \"$OPERATOR_WALLET\""
-
-if [ ${#OPERATOR_TWITTER} -gt 3 ]; then
-  post_data="$post_data,\"twitter\": \"$OPERATOR_TWITTER\""
-fi
-
-post_data="$post_data}"
-
-# Register node with Onion DAO oracle
-curl -X POST https://oniondao.web.app/api/tor_nodes \
-   -H 'Content-Type: application/json' \
-   -d "$post_data"
-
-echoInfo "\n\n------------------------------------------------------"
-echoInfo "Want to stay up to date on OnionDAO developments?"
-echoInfo "------------------------------------------------------\n"
-echoInfo "👉 Join us in the Rocketeer discord in the #onion-dao channel: https://discord.gg/rocketeers\n"
+main "$@"
