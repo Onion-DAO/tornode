@@ -85,8 +85,11 @@ clean_legacy_system() {
 		rm -f /etc/apt/sources.list.d/tor.list
 		ok "Removed old Tor apt source"
 	fi
-	if command -v apt-key > /dev/null && apt-key list 2> /dev/null | tr -d ' ' | grep -q "$TOR_KEY_FINGERPRINT"; then
-		apt-key del "$TOR_KEY_FINGERPRINT" > /dev/null 2>&1 || true
+	# Only the global keyring old versions wrote to, the keyring package manages its own files
+	local legacy_keyring=/etc/apt/trusted.gpg
+	if [ -f "$legacy_keyring" ] && command -v apt-key > /dev/null \
+		&& apt-key --keyring "$legacy_keyring" list 2> /dev/null | tr -d ' ' | grep -q "$TOR_KEY_FINGERPRINT"; then
+		apt-key --keyring "$legacy_keyring" del "$TOR_KEY_FINGERPRINT" > /dev/null 2>&1 || true
 		ok "Removed old apt-key trust for the Tor Project"
 	fi
 
