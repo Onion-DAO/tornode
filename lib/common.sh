@@ -199,8 +199,14 @@ preflight() {
 	if [[ " $SUPPORTED_CODENAMES " != *" $OS_CODENAME "* ]]; then
 
 		if [ -n "$OS_CODENAME" ] && tor_repo_has_suite "$OS_CODENAME"; then
-			warn "$OS_NAME is not tested with OnionDAO. Supported: Ubuntu 26.04/24.04 and Debian 13/12."
-			[ "$FORCE" = yes ] || confirm "Continue anyway?" N || die "Stopped, nothing was changed"
+
+			# Asked once: the answer carries over to the relocated script and is saved for automatic updates
+			if ! release_accepted; then
+				warn "$OS_NAME is not tested with OnionDAO. Supported: Ubuntu 26.04/24.04 and Debian 13/12."
+				confirm "Continue anyway?" N || die "Stopped, nothing was changed"
+			fi
+			export ONIONDAO_ACCEPTED_RELEASE=$OS_CODENAME
+
 		else
 			unsupported_release_help
 			exit 1
@@ -224,6 +230,10 @@ preflight() {
 	# Tor relays need IPv4, and the oracle verifies nodes over IPv4
 	PUBLIC_IP=$( detect_public_ipv4 ) || die "Could not find a public IPv4 address. Tor exit relays (and OnionDAO registration) need IPv4, IPv6-only servers are not supported."
 
+}
+
+release_accepted() {
+	[ "$FORCE" = yes ] || [ "${ONIONDAO_ACCEPTED_RELEASE:-}" = "$OS_CODENAME" ] || [ "$( conf_get ACCEPTED_RELEASE )" = "$OS_CODENAME" ]
 }
 
 unsupported_release_help() {
@@ -495,6 +505,7 @@ save_settings() {
 	for key in EMAIL NICKNAME WALLET BANDWIDTH_TB EXIT_POLICY TWITTER UNBOUND; do
 		conf_set "$key" "${!key}"
 	done
+	[ -z "${ONIONDAO_ACCEPTED_RELEASE:-}" ] || conf_set ACCEPTED_RELEASE "$ONIONDAO_ACCEPTED_RELEASE"
 }
 
 ## ###############
