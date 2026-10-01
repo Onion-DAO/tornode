@@ -8,6 +8,9 @@ repo=$( cd "$( dirname "$0" )/.." && pwd )
 fixtures=$repo/test/fixtures
 export DEBIAN_FRONTEND=noninteractive
 
+# The 2022 commit still has a video LFS pointer whose object no longer exists
+export GIT_LFS_SKIP_SMUDGE=1
+
 # Tor from the distro, configured the 2022 way
 apt-get update -qq
 apt-get install -y -qq tor > /dev/null
