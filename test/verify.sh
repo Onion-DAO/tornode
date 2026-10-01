@@ -90,7 +90,8 @@ else
 fi
 
 echo "== Updates"
-uu_origins=$( unattended-upgrade --dry-run --debug 2>&1 | grep -i 'allowed origins' )
+# Configured origins, without simulating an upgrade run (slow on busy machines)
+uu_origins=$( apt-config dump | grep -E '^Unattended-Upgrade::(Allowed-Origins|Origins-Pattern)' )
 check "unattended-upgrades allows the Tor Project" grep -qi torproject <<< "$uu_origins"
 check "unattended-upgrades still allows distro security" grep -qi security <<< "$uu_origins"
 if [ "$EXPECT_AUTO_UPDATE" = yes ]; then
