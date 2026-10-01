@@ -88,19 +88,18 @@ parse_flags() {
 
 }
 
-# Read an answer from the terminal, which also works when this script is piped into bash
+# ask VAR "Question" default — reads the answer into VAR from the terminal, so it also works when piped into bash.
+# It reads in this shell on purpose: under sudo-rs a reader in a $( ) subshell gets stopped instead of reading.
 ask() {
 
-	local question=$1 default=${2:-} answer=''
+	local __target=$1 __question=$2 __default=${3:-} __reply=''
 
-	if [ "$YES" = yes ]; then
-		echo "$default"
-		return
+	if [ "$YES" != yes ]; then
+		{ : < /dev/tty; } 2> /dev/null || die "No terminal available. Rerun with --yes and ONIONDAO_* variables, see --help"
+		read -r -p "$__question " __reply < /dev/tty || true
 	fi
 
-	{ : < /dev/tty; } 2> /dev/null || die "No terminal available. Rerun with --yes and ONIONDAO_* variables, see --help"
-	read -r -p "$question " answer < /dev/tty
-	echo "${answer:-$default}"
+	printf -v "$__target" '%s' "${__reply:-$__default}"
 
 }
 
@@ -111,7 +110,7 @@ confirm() {
 	[ "$2" = Y ] && hint='[Y/n]'
 
 	local answer
-	answer=$( ask "$1 $hint" "$2" )
+	ask answer "$1 $hint" "$2"
 	[[ "${answer,,}" == y* ]]
 
 }
@@ -441,7 +440,7 @@ prompt_field() {
 	local name=$1 question=$2 validator=$3 value
 
 	while true; do
-		value=$( ask "$question${!name:+ [${!name}]}:" "${!name}" )
+		ask value "$question${!name:+ [${!name}]}:" "${!name}"
 		if $validator "$value"; then
 			printf -v "$name" '%s' "$value"
 			return 0
