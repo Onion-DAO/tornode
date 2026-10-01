@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.1] - 2026-10-01
+
+### Fixed
+- interactive `curl | sudo bash` hung at the first prompt under sudo-rs (Ubuntu 26.04) (c77d9c4)
+- `--no-auto-update` opt-out was not saved when the timer was never enabled (1c3f803)
+
+### Added
+- CI answers every prompt of an interactive `| sudo bash` install on 24.04 and 26.04
+
 ## [1.0.0] - 2026-10-01
 
 ### Breaking

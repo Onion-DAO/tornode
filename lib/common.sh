@@ -8,7 +8,7 @@ set -Eeuo pipefail
 ## Constants
 ## ###############
 
-ONIONDAO_VERSION="1.0.0"
+ONIONDAO_VERSION="1.0.1"
 ONIONDAO_DIR=/opt/oniondao
 ONIONDAO_BIN=/usr/local/sbin/oniondao
 CONF_DIR=/etc/oniondao

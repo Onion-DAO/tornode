@@ -1,0 +1,26 @@
+#!/usr/bin/expect -f
+# A person pipes setup.sh into sudo and answers every prompt, including one invalid answer.
+# Usage: expect test/interactive-install.exp "<command that runs setup.sh>"
+set timeout 120
+proc fail {msg} { puts "\nEXPECT: $msg"; exit 1 }
+spawn bash -c [lindex $argv 0]
+expect {
+  -ex {Continue anyway? [y/N]} { send "y\r"; exp_continue }
+  -ex {per month? [1]:}        { send "\r" }
+  timeout { fail "no bandwidth prompt" }
+}
+expect -ex {Exit policy (reduced/web) [reduced]:} { send "\r" } timeout { fail "no policy prompt" }
+expect -ex {Your email:}                          { send "temporaty-test@palokaj.co\r" } timeout { fail "no email prompt" }
+expect -ex {Node nickname:}                       { send "bad nick!\r" } timeout { fail "no nickname prompt" }
+expect -ex {doesn't look right}                   {} timeout { fail "invalid nickname accepted" }
+expect -ex {Node nickname:}                       { send "oniondaoci\r" } timeout { fail "no nickname re-prompt" }
+expect -ex {(receives POAPs and rewards):}        { send "mentor.eth\r" } timeout { fail "no wallet prompt" }
+expect -ex {(optional):}                          { send "\r" } timeout { fail "no twitter prompt" }
+expect -ex {Continue with these settings? [Y/n]}  { send "\r" } timeout { fail "no confirm prompt" }
+set timeout 900
+expect -ex {Enable automatic OnionDAO updates? [Y/n]} { send "\r" } timeout { fail "no auto-update prompt" }
+expect {
+  -ex {Your OnionDAO Tor exit node is set up.} { puts "\nEXPECT: INSTALL OK"; exit 0 }
+  -ex "✖" { fail "INSTALL FAILED" }
+  timeout { fail "TIMEOUT" }
+}
