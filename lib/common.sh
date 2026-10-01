@@ -37,11 +37,12 @@ fi
 info() { echo -e "${C_CYAN}$*${C_RESET}"; }
 ok() { echo -e "${C_GREEN}✔ $*${C_RESET}"; }
 warn() { echo -e "${C_YELLOW}⚠ $*${C_RESET}" >&2; }
-die() { echo -e "${C_RED}✖ $*${C_RESET}" >&2; exit 1; }
+# Exit code 3 marks an explained failure, so the ERR trap below stays quiet about it
+die() { echo -e "${C_RED}✖ $*${C_RESET}" >&2; exit 3; }
 heading() { echo -e "\n${C_CYAN}── $* ──${C_RESET}"; }
 
 # Surface the failing command instead of dying silently under set -e
-trap 'echo -e "${C_RED}✖ Unexpected error in ${BASH_SOURCE[0]##*/}:${LINENO}: ${BASH_COMMAND}${C_RESET}\n  Details may be in $LOG_FILE" >&2' ERR
+trap 'rc=$?; [ "$rc" -eq 3 ] && exit 3; echo -e "${C_RED}✖ Unexpected error in ${BASH_SOURCE[0]##*/}:${LINENO}: ${BASH_COMMAND}${C_RESET}\n  Details may be in $LOG_FILE" >&2' ERR
 
 ## ###############
 ## Flags & prompts
