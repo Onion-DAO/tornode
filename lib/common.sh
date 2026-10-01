@@ -358,21 +358,22 @@ link_cli() {
 # Settings come from, in order of priority: ONIONDAO_* variables, the config file, a pre-1.0 install
 load_settings() {
 
-	EMAIL=$( conf_get EMAIL ) NICKNAME=$( conf_get NICKNAME ) WALLET=$( conf_get WALLET )
-	BANDWIDTH_TB=$( conf_get BANDWIDTH_TB ) EXIT_POLICY=$( conf_get EXIT_POLICY ) TWITTER=$( conf_get TWITTER )
-	UNBOUND=$( conf_get UNBOUND ) AUTO_UPDATE=$( conf_get AUTO_UPDATE )
+	local key env_key
+
+	for key in EMAIL NICKNAME WALLET BANDWIDTH_TB EXIT_POLICY TWITTER UNBOUND AUTO_UPDATE; do
+		printf -v "$key" '%s' "$( conf_get "$key" )"
+	done
 
 	[ -f "$CONF_FILE" ] || load_legacy_settings
 
-	EMAIL=${ONIONDAO_EMAIL:-$EMAIL}
-	NICKNAME=${ONIONDAO_NICKNAME:-$NICKNAME}
-	WALLET=${ONIONDAO_WALLET:-$WALLET}
-	BANDWIDTH_TB=${ONIONDAO_BANDWIDTH_TB:-$BANDWIDTH_TB}
-	EXIT_POLICY=${ONIONDAO_EXIT_POLICY:-$EXIT_POLICY}
-	TWITTER=${ONIONDAO_TWITTER:-$TWITTER}
-	TWITTER=${TWITTER#@}
-	[[ "$WALLET" == *.eth ]] && WALLET=${WALLET,,}
+	# ONIONDAO_<KEY> variables win, for unattended installs
+	for key in EMAIL NICKNAME WALLET BANDWIDTH_TB EXIT_POLICY TWITTER; do
+		env_key=ONIONDAO_$key
+		printf -v "$key" '%s' "${!env_key:-${!key}}"
+	done
 
+	TWITTER=${TWITTER#@}
+	[[ "${WALLET,,}" == *.eth ]] && WALLET=${WALLET,,}
 	UNBOUND=${UNBOUND_FLAG:-${UNBOUND:-yes}}
 
 }
@@ -491,7 +492,7 @@ collect_settings() {
 
 	heading "OnionDAO needs some information"
 	prompt_field WALLET "Your wallet address or ENS name (receives POAPs and rewards)" valid_wallet
-	[[ "$WALLET" == *.eth ]] && WALLET=${WALLET,,}
+	[[ "${WALLET,,}" == *.eth ]] && WALLET=${WALLET,,}
 
 	echo -e "\nYour Twitter/X handle is optional, only used to tag you."
 	prompt_field TWITTER "Twitter/X handle without @ (optional)" valid_twitter
