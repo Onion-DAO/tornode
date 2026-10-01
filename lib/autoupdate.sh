@@ -53,8 +53,9 @@ autoupdate_disable() {
 # Install and update both land here. On by default, a saved opt-out is respected in unattended runs.
 configure_autoupdate() {
 
+	# Opting out is always saved, so later unattended runs respect it
 	if [ "$AUTO_UPDATE_FLAG" = no ]; then
-		autoupdate_active && autoupdate_disable
+		if autoupdate_active; then autoupdate_disable; else conf_set AUTO_UPDATE no; fi
 		return 0
 	fi
 
