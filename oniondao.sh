@@ -45,7 +45,7 @@ status() {
 	local commit branch remote_head freshness='unknown'
 	commit=$( git_od rev-parse --short HEAD 2> /dev/null || echo '?' )
 	branch=$( git_od symbolic-ref --quiet --short HEAD 2> /dev/null || echo detached )
-	remote_head=$( timeout 5 git_od ls-remote origin "refs/heads/$branch" 2> /dev/null | cut -f1 || true )
+	remote_head=$( timeout 5 git -c safe.directory="$ONIONDAO_DIR" -C "$ONIONDAO_DIR" ls-remote origin "refs/heads/$branch" 2> /dev/null | cut -f1 || true )
 	if [ -n "$remote_head" ]; then
 		[ "$remote_head" = "$( git_od rev-parse HEAD )" ] && freshness='up to date' || freshness='update available, run: sudo oniondao update'
 	fi
