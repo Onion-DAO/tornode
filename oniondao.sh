@@ -79,10 +79,13 @@ update() {
 		if [ "$SELF_UPDATE" = updated ]; then ONIONDAO_PULLED=1 exec "$ONIONDAO_DIR/oniondao.sh" update "$@"; fi
 	fi
 
-	# Automatic runs only reconfigure when there is new code
+	# Automatic runs only reconfigure when there is new code, or when applying the current code failed before
 	if [ "$AUTO" = yes ]; then
 		case "$SELF_UPDATE" in
-			current) echo "OnionDAO is up to date" && exit 0 ;;
+			current)
+				if [ "$( conf_get APPLIED_COMMIT )" = "$( git_od rev-parse HEAD )" ]; then echo "OnionDAO is up to date" && exit 0; fi
+				echo "Applying $( git_od rev-parse --short HEAD ), the last attempt did not finish"
+				;;
 			skipped) exit 0 ;;
 			failed) die "Automatic update failed, see the messages above" ;;
 		esac

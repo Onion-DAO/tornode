@@ -177,11 +177,34 @@ EOF
 
 }
 
+# Every file Tor reads from us. A failed change restores all of them, not only torrc.
+tor_config_files() {
+	echo "$TORRC" "$TORRC_DIR/50-oniondao-extra.conf" "$TOR_RESOLV" "$EXIT_NOTICE"
+}
+
+snapshot_tor_config() {
+	local file
+	TOR_SNAPSHOT=$( mktemp -d )
+	for file in $( tor_config_files ); do
+		if [ -e "$file" ]; then cp -p "$file" "$TOR_SNAPSHOT/${file//\//_}"; fi
+	done
+}
+
+restore_tor_config() {
+	local file saved
+	for file in $( tor_config_files ); do
+		saved=$TOR_SNAPSHOT/${file//\//_}
+		if [ -e "$saved" ]; then cp -p "$saved" "$file"; else rm -f "$file"; fi
+	done
+}
+
 configure_tor() {
 
 	heading "Configuring Tor"
 
 	mkdir -p "$TORRC_DIR"
+	snapshot_tor_config
+
 	[ -n "${ONIONDAO_TORRC_EXTRA:-}" ] && printf '%s\n' "$ONIONDAO_TORRC_EXTRA" > "$TORRC_DIR/50-oniondao-extra.conf"
 
 	if [ "$UNBOUND" = yes ]; then
@@ -189,6 +212,7 @@ configure_tor() {
 		systemctl restart unbound > /dev/null 2>&1 || true
 		sleep 3
 		if ! systemctl is-active --quiet unbound; then
+			restore_tor_config
 			journalctl -u unbound -n 10 --no-pager >&2 || true
 			die "The local unbound resolver did not start (is port 53 taken?). Rerun with --no-unbound to use the system resolver"
 		fi
@@ -204,12 +228,14 @@ configure_tor() {
 	render_torrc > "$new_torrc"
 	chmod 644 "$new_torrc"
 
-	# Validate exactly like the systemd unit runs tor
+	# Validate exactly like the systemd unit runs tor, including the torrc.d files written above
 	if ! tor --defaults-torrc /usr/share/tor/tor-service-defaults-torrc -f "$new_torrc" --verify-config >> "$LOG_FILE" 2>&1; then
+		restore_tor_config
 		tail -n 10 "$LOG_FILE" >&2
 		die "Tor rejected the generated configuration, nothing was changed"
 	fi
 
+	# A copy of the previous torrc stays around for operators who had their own
 	[ -f "$TORRC" ] && cp -p "$TORRC" "$TORRC.oniondao-backup"
 	mv "$new_torrc" "$TORRC"
 	ok "Tor configuration written to $TORRC"
@@ -217,11 +243,13 @@ configure_tor() {
 	systemctl enable tor > /dev/null 2>&1
 	if ! systemctl restart tor@default; then
 		warn "Tor failed to start, restoring the previous configuration"
-		[ -f "$TORRC.oniondao-backup" ] && cp -p "$TORRC.oniondao-backup" "$TORRC"
+		restore_tor_config
 		systemctl restart tor@default || true
 		journalctl -u tor@default -n 20 --no-pager >&2 || true
 		die "Tor did not start with the new configuration"
 	fi
+
+	rm -rf "$TOR_SNAPSHOT"
 
 }
 
